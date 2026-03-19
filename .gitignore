@@ -1,0 +1,11 @@
+# Laravel
+backend/vendor
+backend/node_modules
+backend/.env
+
+# React
+frontend-web/node_modules
+frontend-web/dist
+
+# general
+.env
