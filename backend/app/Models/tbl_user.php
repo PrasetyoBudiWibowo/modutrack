@@ -18,6 +18,7 @@ class tbl_user extends Model
         'kd_user',
         'user_name',
         'password',
+        'password_tampil',
         'status_user',
         'blokir',
         'level_user_id',
