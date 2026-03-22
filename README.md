@@ -35,7 +35,7 @@ modutrack/
 
 ### Frontend
 
-* React (Vite)
+* React (Typescript)
 * Axios
 
 ---
