@@ -10,7 +10,7 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 import Swal from "sweetalert2";
 import axios from "axios";
 
-type LaravelErrorResponse = {
+type ErrorResponse = {
     message?: string;
     errors?: Record<string, string[]>;
 };
@@ -86,7 +86,7 @@ export default function RegisterPage() {
         } catch (err: unknown) {
             let message = "Terjadi kesalahan";
 
-            if (axios.isAxiosError<LaravelErrorResponse>(err)) {
+            if (axios.isAxiosError<ErrorResponse>(err)) {
                 const errorData = err.response?.data;
 
                 if (errorData?.errors) {

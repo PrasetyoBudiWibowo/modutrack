@@ -23,6 +23,14 @@ class tbl_user extends Model
         'blokir',
         'level_user_id',
         'tgl_input',
-        'waktu_input'
+        'waktu_input',
+        'email',
+        'tgl_login_terakhir',
+        'waktu_login_terakhir',
     ];
+
+    public function level()
+    {
+        return $this->belongsTo(tbl_level_user::class, 'level_user_id', 'id');
+    }
 }
