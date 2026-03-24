@@ -10,7 +10,7 @@ Modutrack is a web-based system designed to manage modules, users, and related a
 This project is built using a modern **fullstack architecture**:
 
 * 🔧 Backend: Laravel 11 (REST API)
-* 🌐 Frontend: React (Vite)
+* 🌐 Frontend: React (Typescript)
 * 🗄️ Database: PostgreSQL
 
 ---
