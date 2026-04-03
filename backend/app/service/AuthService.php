@@ -7,6 +7,7 @@ use App\Models\tbl_level_user;
 use App\Models\tbl_history_login;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Crypt;
 use Carbon\Carbon;
 
 use App\Helper\AppLogger;
@@ -201,7 +202,7 @@ class AuthService
         return [
             'status' => true,
             'data' => [
-                'kd_user' => $user->kd_user,
+                'kd_user' =>  Crypt::encryptString($user->kd_user),
                 'user_name' => $user->user_name,
                 'level_user_id' => $user->level_user_id,
                 'status_user' => $user->status_user,

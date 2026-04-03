@@ -7,7 +7,10 @@ Route::get('/tes', function () {
     return 'API works';
 });
 
-Route::post('/login', [AuthController::class, 'login']);
+// Route::post('/login', [AuthController::class, 'login']);
+
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::get('/level-user', [AuthController::class, 'getLevelUser']);
+
+// Route::get('/check-session', [AuthController::class, 'checkSession']);

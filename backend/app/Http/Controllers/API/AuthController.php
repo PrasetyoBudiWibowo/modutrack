@@ -137,4 +137,29 @@ class AuthController extends Controller
             ], 500);
         }
     }
+
+    public function checkSession()
+    {
+        if (!session('user_logged_in') || !session('user')) {
+            return response()->json([
+                'status' => 'unauthenticated',
+                'message' => 'Belum login'
+            ], 401);
+        }
+
+        return response()->json([
+            'status' => 'authenticated',
+            'user' => session('user')
+        ]);
+    }
+
+    public function logout()
+    {
+        session()->flush();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Logout berhasil'
+        ]);
+    }
 }
