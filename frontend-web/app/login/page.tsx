@@ -33,28 +33,19 @@ export default function LoginPage() {
     const router = useRouter();
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-
-        setDataInput((prev) => {
-            if (name === "user_name") {
-                return {
-                    ...prev,
-                    user_name: value.trim().toUpperCase(),
-                };
-            }
-
-            return {
-                ...prev,
-                [name]: value,
-            };
-        });
-
-        setErrors((prev) => ({
-            ...prev,
-            [name]: "",
-        }));
+      const { name, value } = e.target
+    
+      setDataInput(prev => ({
+        ...prev,
+        [name]: name === "user_name" ? value.trim().toUpperCase() : value
+      }))
+    
+      setErrors(prev => ({
+        ...prev,
+        [name]: ""
+      }))
     };
-
+    
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
