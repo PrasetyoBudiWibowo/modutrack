@@ -1,16 +1,18 @@
 # 🚀 Modutrack
 
-A fullstack application built with **Laravel 11 (API)** and **React (Frontend)**.
+A fullstack application built with **Laravel 11 (API)**, **Next.js (Web)**, and **React Native (Mobile)**.
 
 ---
 
 ## 📌 Overview
 
-Modutrack is a web-based system designed to manage modules, users, and related activities.
-This project is built using a modern **fullstack architecture**:
+Modutrack is a fullstack system designed to manage modules, users, and related activities across **web and mobile platforms**.
 
-* 🔧 Backend: Laravel 11 (REST API)
-* 🌐 Frontend: React (Typescript)
+This project follows a **multi-platform architecture**:
+
+* 🔧 Backend: Laravel 11 (REST API + Session-based Auth)
+* 🌐 Frontend Web: Next.js
+* 📱 Frontend Mobile: React Native (Expo)
 * 🗄️ Database: PostgreSQL
 
 ---
@@ -19,30 +21,43 @@ This project is built using a modern **fullstack architecture**:
 
 ```
 modutrack/
-├── backend/         # Laravel API
-├── frontend-web/    # React frontend
+├── backend/           # 🔧 Laravel API
+├── frontend-web/      # 🌐 Next.js (Web)
+├── frontend-mobile/   # 📱 React Native (Expo)
 ```
 
 ---
 
 ## ⚙️ Tech Stack
 
-### Backend
+### 🔧 Backend
 
 * Laravel 11
 * PHP 8.2
 * PostgreSQL
+* Session-based Authentication
 
-### Frontend
+---
 
-* React (Typescript)
+### 🌐 Web Frontend
+
+* Next.js
+* React
+* Axios
+
+---
+
+### 📱 Mobile Frontend
+
+* React Native
+* Expo Router
 * Axios
 
 ---
 
 ## 🔌 API Example
 
-### Login Endpoint
+### 🔐 Login
 
 ```
 POST /api/login
@@ -53,7 +68,19 @@ Request:
 ```json
 {
   "user_name": "admin",
-  "password": "123456"
+  "password": "123"
+}
+```
+
+Response (Success):
+
+```json
+{
+  "status": "success",
+  "message": "Login berhasil",
+  "user": {
+    "user_name": "ADMIN"
+  }
 }
 ```
 
@@ -70,7 +97,7 @@ cd modutrack
 
 ---
 
-### 2. Setup Backend (Laravel)
+## 🔧 Backend Setup (Laravel)
 
 ```
 cd backend
@@ -80,9 +107,15 @@ php artisan key:generate
 php artisan serve
 ```
 
+Default:
+
+```
+http://localhost:8000
+```
+
 ---
 
-### 3. Setup Frontend (React)
+## 🌐 Frontend Web (Next.js)
 
 ```
 cd frontend-web
@@ -92,12 +125,50 @@ npm run dev
 
 ---
 
+## 📱 Frontend Mobile (React Native - Expo)
+
+```
+cd frontend-mobile
+npm install
+npm start
+```
+
+Run on Android Emulator:
+
+```
+Press "a"
+```
+
+---
+
+## ⚠️ Important Notes (Mobile)
+
+If using Android Emulator:
+
+```
+http://10.0.2.2:8000
+```
+
+👉 Used instead of `localhost` to access backend API.
+
+---
+
 ## 🔑 Current Features
 
-* ✅ API setup (Laravel)
-* ✅ React frontend setup
-* ✅ Login API integration
-* 🔄 Authentication (in progress)
+### ✅ Completed
+
+* API Authentication (Laravel)
+* Login (Web)
+* Login (Mobile - React Native)
+* Session-based Authentication
+* API Integration (Axios)
+
+### 🔄 In Progress
+
+* Auto Login (check-session)
+* Logout (Mobile)
+* Route Protection
+* User Management Module
 
 ---
 
@@ -115,7 +186,10 @@ npm run dev
 
 ## 📌 Notes
 
-This project is currently under development.
-More features will be added step by step.
+This project is under active development and follows a **step-by-step implementation approach**:
+
+* No over-engineering
+* Clean architecture
+* Reusable API services
 
 ---
