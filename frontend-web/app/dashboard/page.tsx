@@ -9,23 +9,44 @@ import { checkSession, SessionUser } from "@/utils/apiService";
 export default function DashboardPage() {
     const router = useRouter();
     const [user, setUser] = useState<SessionUser | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [checking, setChecking] = useState(true);
+
 
     useEffect(() => {
-        const init = async () => {
-            const res = await checkSession();
+        const checkAuth = async () => {
+            try {
+                const res = await checkSession();
 
-            if (res.status === "unauthenticated") {
+                if (res.status !== "authenticated") {
+                    await Swal.fire({
+                        icon: "warning",
+                        title: "Akses Ditolak",
+                        text: "Silakan login terlebih dahulu",
+                        confirmButtonText: "OK",
+                    });
+
+                    router.push("/login");
+                    return;
+                }
+
+                setUser(res.user ?? null);
+            } catch (err) {
+                await Swal.fire({
+                    icon: "warning",
+                    title: "Belum Login",
+                    text: "Silakan login terlebih dahulu",
+                    confirmButtonText: "OK",
+                });
+
                 router.push("/login");
                 return;
             }
 
-            setUser(res.user ?? null);
-            setLoading(false);
+            setChecking(false);
         };
 
-        init();
-    }, [router]);
+        checkAuth();
+    }, []);
 
     const handleLogout = () => {
         Swal.fire({
@@ -41,9 +62,7 @@ export default function DashboardPage() {
         });
     };
 
-    if (loading) {
-        return <div className="p-6">Loading...</div>;
-    }
+    if (checking) return null;
 
     return (
         <div className="min-h-screen bg-gray-100 flex flex-col">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import AuthCard from "../components/AuthCard";
 import api from "@/service/api";
@@ -8,6 +8,7 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 import Swal from "sweetalert2";
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import { checkSession } from "@/utils/apiService";
 
 type DataInput = {
     user_name: string;
@@ -32,20 +33,43 @@ export default function LoginPage() {
 
     const router = useRouter();
 
+    useEffect(() => {
+        const checkAuth = async () => {
+            try {
+                const res = await checkSession();
+
+                if (res.status === "authenticated") {
+                    await Swal.fire({
+                        icon: "info",
+                        title: "Sudah Login",
+                        text: "Anda sudah login, akan diarahkan ke dashboard",
+                        confirmButtonText: "OK",
+                    });
+
+                    router.push("/dashboard");
+                }
+            } catch (err) {
+
+            }
+        };
+
+        checkAuth();
+    }, []);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const { name, value } = e.target
-    
-      setDataInput(prev => ({
-        ...prev,
-        [name]: name === "user_name" ? value.trim().toUpperCase() : value
-      }))
-    
-      setErrors(prev => ({
-        ...prev,
-        [name]: ""
-      }))
+        const { name, value } = e.target
+
+        setDataInput(prev => ({
+            ...prev,
+            [name]: name === "user_name" ? value.trim().toUpperCase() : value
+        }))
+
+        setErrors(prev => ({
+            ...prev,
+            [name]: ""
+        }))
     };
-    
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
