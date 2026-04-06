@@ -67,7 +67,7 @@ Request:
 
 ```json
 {
-  "user_name": "admin",
+  "user_name": "ADMIN",
   "password": "123"
 }
 ```
