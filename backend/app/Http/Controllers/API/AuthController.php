@@ -109,25 +109,33 @@ class AuthController extends Controller
 
             $user = $result['data'];
 
-            session([
-                'user' => [
-                    'kd_user' => $user['kd_user'],
-                    'user_name' => $user['user_name'],
-                    'level_user_id' => $user['level_user_id'],
-                    'level_user' => $user['level_user'][0]['level_user'] ?? 'Unknown',
-                    'img_user' => $user['img_user'],
-                    'format_img_user' => $user['format_img_user'],
-                    'status_user' => $user['status_user'],
-                    'blokir' => $user['blokir'],
-                ],
-                'user_logged_in' => true
-            ]);
+            $userModel = $result['user_model'];
+
+
+            $token = $userModel->createToken('auth_token')->plainTextToken;
+
+
+            // session([
+            //     'user' => [
+            //         'kd_user' => $user['kd_user'],
+            //         'user_name' => $user['user_name'],
+            //         'level_user_id' => $user['level_user_id'],
+            //         'level_user' => $user['level_user'][0]['level_user'] ?? 'Unknown',
+            //         'img_user' => $user['img_user'],
+            //         'format_img_user' => $user['format_img_user'],
+            //         'status_user' => $user['status_user'],
+            //         'blokir' => $user['blokir'],
+            //     ],
+            //     'user_logged_in' => true
+            // ]);
 
             $log->info("<=== BERHASIL LOGIN =====>");
 
             return response()->json([
                 'status' => 'success',
                 'message' => 'Login berhasil',
+                'user_logged_in' => true,
+                'token' => $token,
                 'user' => $user,
             ]);
         } catch (\Throwable $th) {
@@ -138,24 +146,34 @@ class AuthController extends Controller
         }
     }
 
-    public function checkSession()
+    public function checkSession(Request $request)
     {
-        if (!session('user_logged_in') || !session('user')) {
+        $user = $request->user();
+
+        if (!$user) {
             return response()->json([
-                'status' => 'unauthenticated',
-                'message' => 'Belum login'
+                'status' => 'unauthenticated'
             ], 401);
         }
 
         return response()->json([
             'status' => 'authenticated',
-            'user' => session('user')
+            'user' => [
+                'kd_user' => $user->kd_user,
+                'user_name' => $user->user_name,
+                'level_user_id' => $user->level_user_id,
+                'level_user' => $user->level->level_user ?? null,
+                'img_user' => $user->img_user,
+                'format_img_user' => $user->format_img_user,
+                'status_user' => $user->status_user,
+                'blokir' => $user->blokir,
+            ]
         ]);
     }
 
-    public function logout()
+    public function logout(Request $request)
     {
-        session()->flush();
+        $request->user()->tokens()->delete();
 
         return response()->json([
             'status' => 'success',

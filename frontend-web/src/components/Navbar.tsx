@@ -26,6 +26,7 @@ export default function Navbar({ user, setSidebarOpen }: Props) {
 
     if (result.isConfirmed) {
       await api.post("/logout");
+      localStorage.removeItem("token");
       router.push("/login");
     }
   };

@@ -9,6 +9,6 @@ Route::get('/', function () {
 
 Route::prefix('api')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
-    Route::get('/check-session', [AuthController::class, 'checkSession']);
-    Route::post('/logout', [AuthController::class, 'logout']);
+    // Route::get('/check-session', [AuthController::class, 'checkSession']);
+    // Route::post('/logout', [AuthController::class, 'logout']);
 });

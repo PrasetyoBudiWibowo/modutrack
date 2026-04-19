@@ -4,7 +4,7 @@ import axios from "axios";
 // ==============================
 // GET LEVEL USER
 // ==============================
-type ApiResponse<T> = {
+type LevelUserResponse<T> = {
   status: boolean;
   data: T;
 };
@@ -16,7 +16,35 @@ export type LevelUser = {
 
 // 🔹 GET LEVEL USER
 export const getLevelUser = async (): Promise<LevelUser[]> => {
-  const res = await api.get<ApiResponse<LevelUser[]>>("/level-user");
+  const res = await api.get<LevelUserResponse<LevelUser[]>>("/level-user");
+  return res.data.data;
+};
+
+// ==============================
+// GET LEVEL USER
+// ==============================
+export type User = {
+  kd_user: string;
+  user_name: string;
+  level_user_id: number;
+  status_user: string;
+  blokir: string;
+  img_user?: string | null;
+  format_img_user?: string | null;
+  level?: {
+    id: number;
+    level_user: string;
+  };
+};
+
+type UserResponse<T> = {
+  status: boolean;
+  message: string;
+  data: T;
+};
+
+export const getAllUser = async (): Promise<User[]> => {
+  const res = await api.get<UserResponse<User[]>>("/users/all-user");
   return res.data.data;
 };
 
@@ -43,6 +71,7 @@ export type CheckSessionResponse = {
 export const checkSession = async (): Promise<CheckSessionResponse> => {
   try {
     const res = await api.get<CheckSessionResponse>("/check-session");
+
     return res.data;
   } catch (error: unknown) {
     if (axios.isAxiosError(error)) {

@@ -185,6 +185,8 @@ class AuthService
             'user_name' => $user->user_name
         ]);
 
+        $log->info("=== BERHASIL SIMPAN DATA HISTORY LOGIN 2 ===");
+
         if (!$historyLogin) {
             $log->error("Gagal membuat history login");
 
@@ -194,13 +196,18 @@ class AuthService
             ];
         }
 
+        $log->info("=== BERHASIL SIMPAN DATA HISTORY LOGIN 3 ===");
+
         $user->update([
             'tgl_login_terakhir' => $historyLogin->tgl_login,
             'waktu_login_terakhir' => $historyLogin->waktu_login,
         ]);
 
+        $log->info("=== UPDATE TANGGAL LOGIN ===");
+
         return [
             'status' => true,
+            'user_model' => $user,
             'data' => [
                 'kd_user' =>  Crypt::encryptString($user->kd_user),
                 'user_name' => $user->user_name,

@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Laravel\Sanctum\HasApiTokens;
 
-class tbl_user extends Model
+class tbl_user extends Authenticatable
 {
+    use HasApiTokens;
+
     protected $table = 'tbl_user';
 
     protected $primaryKey = 'kd_user';

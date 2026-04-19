@@ -106,6 +106,8 @@ export default function LoginPage() {
       }
 
       if (res.data.status === "success") {
+        localStorage.setItem("token", res.data.token);
+
         Swal.fire({
           icon: "success",
           title: "Berhasil",
