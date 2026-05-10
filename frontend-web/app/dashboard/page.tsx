@@ -25,27 +25,30 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      try {
-        const res = await checkSession();
+      const res = await checkSession();
 
-        if (res.status !== "authenticated") {
-          await Swal.fire({
-            icon: "warning",
-            title: "Akses Ditolak",
-          });
-          router.push("/login");
-          return;
-        }
+      if (res.status !== "authenticated") {
+        await Swal.fire({
+          icon: "warning",
+          title: "Session Habis",
+          text: "Silakan login kembali",
+        });
 
-        setUser(res.user ?? null);
-      } catch {
         router.push("/login");
+        return;
       }
 
+      setUser(res.user ?? null);
       setChecking(false);
     };
 
     checkAuth();
+
+    const interval = setInterval(() => {
+      checkAuth();
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   if (checking) return null;

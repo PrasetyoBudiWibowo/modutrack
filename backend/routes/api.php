@@ -8,14 +8,15 @@ use App\Http\Controllers\API\UserController;
 //     return 'API works';
 // });
 
-Route::get('/check-session', [AuthController::class, 'checkSession'])
-    ->middleware('auth:sanctum');
+Route::middleware(['auth:sanctum'])->group(function () {
 
-Route::post('/logout', [AuthController::class, 'logout'])
-    ->middleware('auth:sanctum');
+    Route::get('/check-session', [AuthController::class, 'checkSession']);
 
-Route::prefix('users')->middleware('auth:sanctum')->group(function () {
-    Route::get('/all-user', [UserController::class, 'getAllUser']);
+    Route::post('/logout', [AuthController::class, 'logout']);
+
+    Route::prefix('users')->middleware('auth:sanctum')->group(function () {
+        Route::get('/all-user', [UserController::class, 'getAllUser']);
+    });
 });
 
 

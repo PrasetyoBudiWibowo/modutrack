@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Crypt;
+use Carbon\Carbon;
 
 use App\Helper\AppLogger;
 
@@ -111,23 +112,15 @@ class AuthController extends Controller
 
             $userModel = $result['user_model'];
 
+            $userModel->tokens()->delete();
 
-            $token = $userModel->createToken('auth_token')->plainTextToken;
+            $tokenResult = $userModel->createToken('auth_token');
 
+            $token = $tokenResult->plainTextToken;
 
-            // session([
-            //     'user' => [
-            //         'kd_user' => $user['kd_user'],
-            //         'user_name' => $user['user_name'],
-            //         'level_user_id' => $user['level_user_id'],
-            //         'level_user' => $user['level_user'][0]['level_user'] ?? 'Unknown',
-            //         'img_user' => $user['img_user'],
-            //         'format_img_user' => $user['format_img_user'],
-            //         'status_user' => $user['status_user'],
-            //         'blokir' => $user['blokir'],
-            //     ],
-            //     'user_logged_in' => true
-            // ]);
+            $tokenResult->accessToken->forceFill([
+                'last_activity' => now(),
+            ])->save();
 
             $log->info("<=== BERHASIL LOGIN =====>");
 
@@ -156,6 +149,34 @@ class AuthController extends Controller
             ], 401);
         }
 
+        $token = null;
+        $lastActivity = null;
+        $inactiveSeconds = null;
+
+        if ($user->level_user_id != 1) {
+
+            $token = $user->currentAccessToken();
+
+            if ($token && $token->last_activity) {
+
+                $lastActivity = Carbon::parse($token->last_activity);
+
+                $inactiveSeconds = $lastActivity->diffInSeconds(now());
+
+                $timeoutMinutes = 30;
+
+                if ($inactiveSeconds >= ($timeoutMinutes * 60)) {
+
+                    $user->tokens()->delete();
+
+                    return response()->json([
+                        'status' => 'unauthenticated',
+                        'message' => 'Session expired'
+                    ], 401);
+                }
+            }
+        }
+
         return response()->json([
             'status' => 'authenticated',
             'user' => [
@@ -167,7 +188,11 @@ class AuthController extends Controller
                 'format_img_user' => $user->format_img_user,
                 'status_user' => $user->status_user,
                 'blokir' => $user->blokir,
-            ]
+            ],
+            'token' => $token,
+            'last_activity' => $lastActivity,
+            'now' => now(),
+            'inactive' => $inactiveSeconds,
         ]);
     }
 

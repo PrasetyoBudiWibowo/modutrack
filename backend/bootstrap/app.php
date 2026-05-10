@@ -15,7 +15,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'api/login',
             'api/check-session',
-            'api/logout'
+            'api/logout',
+            'token.timeout' => \App\Http\Middleware\CheckTokenTimeout::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
