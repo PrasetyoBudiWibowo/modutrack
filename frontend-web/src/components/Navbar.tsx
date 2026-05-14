@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import { Menu, LogOut, User, ChevronDown } from "lucide-react";
 import Swal from "sweetalert2";
 import api from "@/service/api";
-import { SessionUser } from "@/utils/apiService";
-
+import { SessionUser } from "@/service/auth/authService";
 interface Props {
   user: SessionUser | null;
   setSidebarOpen: (val: boolean) => void;

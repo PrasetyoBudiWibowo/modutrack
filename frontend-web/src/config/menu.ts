@@ -11,11 +11,11 @@ export const staticMenu: MenuItem[] = [
   {
     name: "Dashboard",
     url: "/dashboard",
-    icon: "dashboard",
+    icon: "LayoutDashboard",
   },
   {
     name: "Management",
-    icon: "settings",
+    icon: "Settings",
     children: [
       {
         name: "User",
@@ -24,6 +24,28 @@ export const staticMenu: MenuItem[] = [
       {
         name: "Module",
         url: "/dashboard/modules",
+      },
+    ],
+  },
+  {
+    name: "Wilayah",
+    icon: "MapPinned",
+    children: [
+      {
+        name: "Provinsi",
+        url: "/provinsi",
+      },
+      {
+        name: "Kota",
+        url: "/kota",
+      },
+      {
+        name: "Kecamatan",
+        url: "/kecamatan",
+      },
+      {
+        name: "Kelurahan",
+        url: "/kelurahan",
       },
     ],
   },

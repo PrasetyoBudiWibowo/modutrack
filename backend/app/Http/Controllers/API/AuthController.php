@@ -160,9 +160,7 @@ class AuthController extends Controller
             if ($token && $token->last_activity) {
 
                 $lastActivity = Carbon::parse($token->last_activity);
-
                 $inactiveSeconds = $lastActivity->diffInSeconds(now());
-
                 $timeoutMinutes = 30;
 
                 if ($inactiveSeconds >= ($timeoutMinutes * 60)) {
@@ -180,7 +178,7 @@ class AuthController extends Controller
         return response()->json([
             'status' => 'authenticated',
             'user' => [
-                'kd_user' => $user->kd_user,
+                'kd_user' => Crypt::encryptString($user->kd_user),
                 'user_name' => $user->user_name,
                 'level_user_id' => $user->level_user_id,
                 'level_user' => $user->level->level_user ?? null,

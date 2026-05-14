@@ -5,9 +5,11 @@ namespace App\Service;
 use App\Models\tbl_user;
 use App\Models\tbl_level_user;
 use App\Models\tbl_history_login;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Carbon\Carbon;
 
 use App\Helper\AppLogger;
@@ -223,6 +225,70 @@ class AuthService
                     ]
                 ],
             ]
+        ];
+    }
+
+    public function validateUser(Request $request)
+    {
+        $authUser = $request->user();
+
+        if (!$authUser) {
+            return [
+                'status' => false,
+                'code' => 401,
+                'message' => 'User tidak terautentikasi'
+            ];
+        }
+
+        try {
+            $decryptKdUser = Crypt::decryptString(
+                $request->kd_user
+            );
+        } catch (DecryptException $e) {
+            return [
+                'status' => false,
+                'code' => 400,
+                'message' => 'KD User tidak valid'
+            ];
+        }
+
+        if ($decryptKdUser !== $authUser->kd_user) {
+            return [
+                'status' => false,
+                'code' => 403,
+                'message' => 'User tidak valid'
+            ];
+        }
+
+        $user = tbl_user::where('kd_user', $decryptKdUser)->first();
+
+        if (!$user) {
+            return [
+                'status' => false,
+                'code' => 404,
+                'message' => 'User tidak ditemukan'
+            ];
+        }
+
+        if ($user->status_user !== 'ACTIVE') {
+            return [
+                'status' => false,
+                'code' => 403,
+                'message' => 'User tidak aktif'
+            ];
+        }
+
+        if ($user->blokir === 'YA') {
+            return [
+                'status' => false,
+                'code' => 403,
+                'message' => 'User diblokir'
+            ];
+        }
+
+        return [
+            'status' => true,
+            'user' => $user
         ];
     }
 }

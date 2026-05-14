@@ -13,6 +13,15 @@ class DeviceHelper
         $browserName = 'Tidak Teridentifikasi';
         $browserVersion = 'Tidak Diketahui';
 
+        if (!$userAgent) {
+            return [
+                'deviceType' => $deviceType,
+                'deviceName' => $deviceName,
+                'browser' => $browserName,
+                'browserVersion' => $browserVersion
+            ];
+        }
+
         $deviceDetector = new DeviceDetector($userAgent);
         $deviceDetector->parse();
 
@@ -20,21 +29,27 @@ class DeviceHelper
             $deviceType = 'BOT';
             $deviceName = $deviceDetector->getBot()['name'] ?? 'Bot';
         } else {
+
+            $brand = $deviceDetector->getBrandName() ?? '';
+            $model = $deviceDetector->getModel() ?? '';
+
             if ($deviceDetector->isMobile()) {
                 $deviceType = 'SMARTPHONE';
-                $deviceName = $deviceDetector->getBrandName() . ' ' . $deviceDetector->getModel();
+                $deviceName = trim($brand . ' ' . $model) ?: 'Smartphone';
             } elseif ($deviceDetector->isTablet()) {
                 $deviceType = 'TABLET';
-                $deviceName = $deviceDetector->getBrandName() . ' ' . $deviceDetector->getModel();
+                $deviceName = trim($brand . ' ' . $model) ?: 'Tablet';
             } elseif ($deviceDetector->isDesktop()) {
                 $deviceType = 'DESKTOP / PC';
                 $deviceName = 'Desktop atau PC';
             }
         }
 
-        if ($deviceDetector->getClient()) {
-            $browserName = $deviceDetector->getClient()['name'];
-            $browserVersion = $deviceDetector->getClient()['version'];
+        $client = $deviceDetector->getClient();
+
+        if (!empty($client)) {
+            $browserName = $client['name'] ?? 'Unknown';
+            $browserVersion = $client['version'] ?? 'Unknown';
         }
 
         return [
