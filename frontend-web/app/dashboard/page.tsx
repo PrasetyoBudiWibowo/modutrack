@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import Sidebar from "@/src/components/Sidebar";
 import Navbar from "@/src/components/Navbar";
 import Swal from "sweetalert2";
-import { checkSession, SessionUser } from "@/utils/apiService";
+import { checkSession, SessionUser } from "@/service/auth/authService";
 
 export default function DashboardPage() {
   const router = useRouter();
+
   const [user, setUser] = useState<SessionUser | null>(null);
   const [checking, setChecking] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -19,27 +20,57 @@ export default function DashboardPage() {
     };
 
     handleResize();
+
     window.addEventListener("resize", handleResize);
+
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   useEffect(() => {
+    let isAlertShown = false;
+
     const checkAuth = async () => {
-      const res = await checkSession();
+      try {
+        const res = await checkSession();
 
-      if (res.status !== "authenticated") {
-        await Swal.fire({
-          icon: "warning",
-          title: "Session Habis",
-          text: "Silakan login kembali",
-        });
+        if (res.status !== "authenticated") {
+          if (!isAlertShown) {
+            isAlertShown = true;
 
-        router.push("/login");
-        return;
+            localStorage.removeItem("token");
+
+            await Swal.fire({
+              icon: "warning",
+              title: "Session Habis",
+              text: "Silakan login kembali",
+              confirmButtonText: "OK",
+            });
+
+            router.push("/login");
+          }
+
+          return;
+        }
+
+        setUser(res.user ?? null);
+      } catch {
+        localStorage.removeItem("token");
+
+        if (!isAlertShown) {
+          isAlertShown = true;
+
+          await Swal.fire({
+            icon: "error",
+            title: "Akses Ditolak",
+            text: "Silakan login kembali",
+            confirmButtonText: "OK",
+          });
+
+          router.push("/login");
+        }
+      } finally {
+        setChecking(false);
       }
-
-      setUser(res.user ?? null);
-      setChecking(false);
     };
 
     checkAuth();
@@ -49,9 +80,15 @@ export default function DashboardPage() {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [router]);
 
-  if (checking) return null;
+  if (checking) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <p className="text-gray-500 text-sm">Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-100">

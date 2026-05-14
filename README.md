@@ -1,195 +1,169 @@
 # 🚀 Modutrack
 
-A fullstack application built with **Laravel 11 (API)**, **Next.js (Web)**, and **React Native (Mobile)**.
+Fullstack application built with **Laravel 11 (API)**, **Next.js (Web)**, and **React Native (Mobile)**.
 
 ---
 
-## 📌 Overview
+# 📌 Overview
 
-Modutrack is a fullstack system designed to manage modules, users, and related activities across **web and mobile platforms**.
+Modutrack is a fullstack system designed to manage users, modules, and activity tracking across web and mobile platforms.
 
-This project follows a **multi-platform architecture**:
+This project uses a multi-platform architecture:
 
-* 🔧 Backend: Laravel 11 (REST API + Session-based Auth)
-* 🌐 Frontend Web: Next.js
-* 📱 Frontend Mobile: React Native (Expo)
-* 🗄️ Database: PostgreSQL
+- 🔧 Backend API: Laravel 11 + Sanctum
+- 🌐 Frontend Web: Next.js 16 + TypeScript
+- 📱 Frontend Mobile: React Native (Expo)
+- 🗄️ Database: PostgreSQL
 
 ---
 
-## 🏗️ Project Structure
+# 🏗️ Project Structure
 
-```
+```bash
 modutrack/
-├── backend/           # 🔧 Laravel API
-├── frontend-web/      # 🌐 Next.js (Web)
-├── frontend-mobile/   # 📱 React Native (Expo)
-```
+├── backend/           # Laravel API
+├── frontend-web/      # Next.js Web
+├── frontend-mobile/   # React Native Expo
 
----
 
-## ⚙️ Tech Stack
+⚙️ Tech Stack
+🔧 Backend
+Laravel 11
+PHP 8.2+
+Laravel
+PostgreSQL
+REST API Authentication
 
-### 🔧 Backend
+🌐 Frontend Web
+Next.js
+React
+TypeScript
+Tailwind CSS
+Axios
+SweetAlert2
 
-* Laravel 11
-* PHP 8.2
-* PostgreSQL
-* Session-based Authentication
+📱 Frontend Mobile
+React Native
+Expo
+Expo Router
+Axios
 
----
+🔐 Authentication Flow
 
-### 🌐 Web Frontend
+Authentication uses:
 
-* Next.js
-* React
-* Axios
+Laravel Sanctum Token
+Protected API Route
+Auto Session Check
+Auto Logout Session Timeout
+Multi Login Protection
 
----
+🔥 Current Features
+✅ Completed
+Backend API
+Login API
+Register API
+Check Session API
+Logout API
+User Authentication with Sanctum
+Session Timeout Validation
+Auto Delete Expired Token
+Single Active Login Per User
+Frontend Web
+Login Page
+Register Page
+Dashboard Layout
+Sidebar Navigation
+Navbar
+Route Protection
+Auto Redirect Login
+Session Checker
+Auto Logout when Session Expired
+Modular API Services
 
-### 📱 Mobile Frontend
-
-* React Native
-* Expo Router
-* Axios
-
----
-
-## 🔌 API Example
-
-### 🔐 Login
-
-```
-POST /api/login
-```
-
-Request:
-
-```json
-{
-  "user_name": "ADMIN",
-  "password": "123"
-}
-```
-
-Response (Success):
-
-```json
-{
-  "status": "success",
-  "message": "Login berhasil",
-  "user": {
-    "user_name": "ADMIN"
-  }
-}
-```
-
----
-
-## 🚀 Getting Started
-
-### 1. Clone Repository
-
-```
-git clone https://github.com/PrasetyoBudiWibowo/modutrack.git
-cd modutrack
-```
-
----
-
-## 🔧 Backend Setup (Laravel)
-
-```
+🔧 Backend Setup (Laravel)
 cd backend
+
+Install dependency:
+
 composer install
+
+Copy env:
+
 cp .env.example .env
+
+Generate key:
+
 php artisan key:generate
+
+Run migration:
+
+php artisan migrate
+
+Run server:
+
 php artisan serve
-```
 
-Default:
+Backend default URL:
 
-```
 http://localhost:8000
-```
-
----
-
-## 🌐 Frontend Web (Next.js)
-
-```
+🌐 Frontend Web Setup (Next.js)
 cd frontend-web
+
+Install dependency:
+
 npm install
+
+Run development server:
+
 npm run dev
-```
 
----
+Frontend URL:
 
-## 📱 Frontend Mobile (React Native - Expo)
-
-```
+http://localhost:3000
+📱 Frontend Mobile Setup (Expo)
 cd frontend-mobile
+
+Install dependency:
+
 npm install
+
+Start Expo:
+
 npm start
-```
 
-Run on Android Emulator:
+Run Android Emulator:
 
-```
 Press "a"
-```
-
----
-
-## ⚠️ Important Notes (Mobile)
+⚠️ Important Notes
+Android Emulator API URL
 
 If using Android Emulator:
 
-```
 http://10.0.2.2:8000
-```
 
-👉 Used instead of `localhost` to access backend API.
+because Android Emulator cannot access localhost.
 
----
+🔒 Session Timeout
 
-## 🔑 Current Features
+Session timeout currently implemented:
 
-### ✅ Completed
+Auto logout after inactivity
+Token automatically deleted from personal_access_tokens
+Super Admin excluded from timeout
+Only inactive user token will be deleted
+🧠 Development Notes
 
-* API Authentication (Laravel)
-* Login (Web)
-* Login (Mobile - React Native)
-* Session-based Authentication
-* API Integration (Axios)
+This project follows:
 
-### 🔄 In Progress
+Clean architecture
+Reusable services
+Step-by-step implementation
+Minimal over-engineering
+Modular frontend structure
+📸 Preview
 
-* Auto Login (check-session)
-* Logout (Mobile)
-* Route Protection
-* User Management Module
+Coming soon...
 
----
-
-## 📸 Preview
-
-*(coming soon)*
-
----
-
-## 🧠 Author
-
-* **Prasetyo Budi Wibowo**
-
----
-
-## 📌 Notes
-
-This project is under active development and follows a **step-by-step implementation approach**:
-
-* No over-engineering
-* Clean architecture
-* Reusable API services
-
----
+👨‍💻 Author
+Prasetyo Budi Wibowo

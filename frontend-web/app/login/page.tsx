@@ -8,7 +8,7 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 import Swal from "sweetalert2";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import { checkSession } from "@/utils/apiService";
+import { checkSession } from "@/service/auth/authService";
 
 type DataInput = {
   user_name: string;
@@ -29,6 +29,7 @@ export default function LoginPage() {
   const [dataInput, setDataInput] = useState<DataInput>(initialState);
   const [errors, setErrors] = useState<Partial<DataInput>>({});
   const [showPassword, setShowPassword] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [loading, setLoading] = useState(false);
 
   const router = useRouter();
@@ -47,12 +48,17 @@ export default function LoginPage() {
           });
 
           router.push("/dashboard");
+          return;
         }
-      } catch (err) {}
+      } finally {
+        setCheckingAuth(false);
+      }
     };
 
     checkAuth();
   }, []);
+
+  if (checkingAuth) return null;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -87,37 +93,27 @@ export default function LoginPage() {
     try {
       const res = await api.post("/login", dataInput);
 
-      if (!res.data.status) {
+      if (res.data.status !== "success") {
         Swal.fire({
           icon: "warning",
           title: "Gagal",
           text: res.data.message,
         });
+
         return;
       }
 
-      if (res.data.status === "fail") {
-        Swal.fire({
-          icon: "warning",
-          title: "Gagal",
-          text: res.data.message,
-        });
-        return;
-      }
+      localStorage.setItem("token", res.data.token);
 
-      if (res.data.status === "success") {
-        localStorage.setItem("token", res.data.token);
-
-        Swal.fire({
-          icon: "success",
-          title: "Berhasil",
-          text: res.data.message,
-        }).then(() => {
-          router.push("/dashboard");
-        });
-      }
+      await Swal.fire({
+        icon: "success",
+        title: "Berhasil",
+        text: res.data.message,
+      });
 
       setDataInput(initialState);
+
+      router.push("/dashboard");
     } catch (err: unknown) {
       let message = "Terjadi kesalahan";
 
