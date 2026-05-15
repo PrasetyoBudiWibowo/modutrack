@@ -37,42 +37,51 @@ class WilayahController extends Controller
     {
         $log = AppLogger::getLogger('syncProvinsi');
 
-        $validateUser = $this->authService
-            ->validateUser($request);
+        try {
+            $validateUser = $this->authService
+                ->validateUser($request);
 
-        if (!$validateUser['status']) {
+            if (!$validateUser['status']) {
+
+                return response()->json([
+                    'status' => false,
+                    'message' => $validateUser['message']
+                ], $validateUser['code']);
+            }
+
+            $data = $request->data;
+
+            if (!is_array($data) || count($data) <= 0) {
+
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Data provinsi kosong'
+                ], 422);
+            }
+
+            $dataToSave = [];
+
+            foreach ($data as $item) {
+                $dataToSave[] = [
+                    'id_provinsi'   => $item['id'],
+                    'nama_provinsi' => $item['name'],
+                    'user_input'    => $validateUser['user']->user_name ?? 'SYSTEM',
+                ];
+            }
+
+            $this->wilayahService->syncProvinsi($dataToSave);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Data provinsi berhasil disimpan'
+            ]);
+        } catch (\Throwable $th) {
+            $log->error($th->getMessage());
 
             return response()->json([
                 'status' => false,
-                'message' => $validateUser['message']
-            ], $validateUser['code']);
+                'message' => 'Terjadi kesalahan pada server'
+            ], 500);
         }
-
-        $data = $request->data;
-
-        if (!is_array($data) || count($data) <= 0) {
-
-            return response()->json([
-                'status' => false,
-                'message' => 'Data provinsi kosong'
-            ], 422);
-        }
-
-        $dataToSave = [];
-
-        foreach ($data as $item) {
-            $dataToSave[] = [
-                'id_provinsi'   => $item['id'],
-                'nama_provinsi' => $item['name'],
-                'user_input'    => $validateUser['user']->user_name ?? 'SYSTEM',
-            ];
-        }
-
-        $this->wilayahService->syncProvinsi($dataToSave);
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Data provinsi berhasil disimpan'
-        ]);
     }
 }

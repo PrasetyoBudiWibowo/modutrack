@@ -240,6 +240,24 @@ class AuthService
             ];
         }
 
+        $token = $authUser->currentAccessToken();
+        if (!$token) {
+            return [
+                'status' => false,
+                'code' => 401,
+                'message' => 'Token tidak valid'
+            ];
+        }
+
+        if ($token->expires_at && now()->greaterThan($token->expires_at)) {
+            $token->delete();
+            return [
+                'status' => false,
+                'code' => 401,
+                'message' => 'Token expired'
+            ];
+        }
+
         try {
             $decryptKdUser = Crypt::decryptString(
                 $request->kd_user
@@ -260,7 +278,10 @@ class AuthService
             ];
         }
 
-        $user = tbl_user::where('kd_user', $decryptKdUser)->first();
+        $user = tbl_user::where(
+            'kd_user',
+            $decryptKdUser
+        )->first();
 
         if (!$user) {
             return [
@@ -288,7 +309,8 @@ class AuthService
 
         return [
             'status' => true,
-            'user' => $user
+            'user' => $user,
+            'token' => $token
         ];
     }
 }

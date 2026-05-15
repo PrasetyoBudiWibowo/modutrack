@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Menu, ChevronDown, ChevronRight } from "lucide-react";
 import { staticMenu } from "../config/menu";
 import { iconMap } from "../config/iconMap";
+import Link from "next/link";
 
 interface Props {
   sidebarOpen: boolean;
@@ -12,12 +12,10 @@ interface Props {
 }
 
 export default function Sidebar({ sidebarOpen, setSidebarOpen }: Props) {
-  const router = useRouter();
   const [openMenu, setOpenMenu] = useState<Record<number, boolean>>({});
 
   return (
     <>
-      {/* OVERLAY MOBILE */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/30 z-30 md:hidden"
@@ -26,12 +24,21 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }: Props) {
       )}
 
       <aside
-        className={`fixed md:static z-40 bg-white shadow-md transition-all duration-300 overflow-hidden
-        ${sidebarOpen ? "w-56 translate-x-0" : "w-20 -translate-x-full md:translate-x-0"}
-        flex flex-col`}>
+        className={`
+          fixed top-0 left-0 h-screen z-40
+          bg-white shadow-md border-r border-gray-200
+          transition-all duration-300 overflow-y-auto
+          ${
+            sidebarOpen
+              ? "w-56 translate-x-0"
+              : "w-20 -translate-x-full md:translate-x-0"
+          }
+          flex flex-col
+        `}>
         {/* HEADER */}
-        <div className="p-4 font-bold text-lg border-b flex justify-between items-center">
+        <div className="sticky top-0 bg-white z-10 p-4 font-bold text-lg border-b flex justify-between items-center">
           {sidebarOpen ? "Modutrack" : "M"}
+
           <button onClick={() => setSidebarOpen(!sidebarOpen)}>
             <Menu size={20} />
           </button>
@@ -45,13 +52,19 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }: Props) {
             // MENU TANPA CHILD
             if (!menu.children) {
               return (
-                <button
+                <Link
                   key={index}
-                  onClick={() => router.push(menu.url!)}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100">
+                  href={menu.url!}
+                  className="
+                    w-full flex items-center gap-3
+                    px-3 py-2 rounded-lg
+                    hover:bg-gray-100
+                    transition
+                  ">
                   {Icon && <Icon size={18} />}
+
                   {sidebarOpen && <span>{menu.name}</span>}
-                </button>
+                </Link>
               );
             }
 
@@ -65,9 +78,15 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }: Props) {
                       [index]: !openMenu[index],
                     })
                   }
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-gray-100">
+                  className="
+                    w-full flex items-center justify-between
+                    px-3 py-2 rounded-lg
+                    hover:bg-gray-100
+                    transition
+                  ">
                   <div className="flex items-center gap-3">
                     {Icon && <Icon size={18} />}
+
                     {sidebarOpen && <span>{menu.name}</span>}
                   </div>
 
@@ -82,12 +101,17 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }: Props) {
                 {menu.children && openMenu[index] && sidebarOpen && (
                   <div className="ml-8 mt-1 space-y-1">
                     {menu.children.map((child, i) => (
-                      <button
+                      <Link
                         key={i}
-                        onClick={() => router.push(child.url!)}
-                        className="block w-full text-left px-2 py-1 rounded hover:bg-gray-100">
+                        href={child.url!}
+                        className="
+                            block w-full
+                            text-left px-2 py-1
+                            rounded hover:bg-gray-100
+                            transition
+                          ">
                         {child.name}
-                      </button>
+                      </Link>
                     ))}
                   </div>
                 )}
