@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Models\tbl_master_provinsi;
+use App\Models\tbl_master_kabupaten_kota;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
@@ -83,6 +84,80 @@ class WilayahService
             DB::rollBack();
             Log::error('syncProvinsi failed: ' . $e->getMessage());
             return false;
+        }
+    }
+
+    private function generateKdKabupatenKota()
+    {
+        $currentMonth = Carbon::now()->format('Ym');
+        $prefix = 'KAB-' . $currentMonth . '-';
+
+        $lastProvinsi = tbl_master_kabupaten_kota::where('kd_kabupaten_kota', 'LIKE', $prefix . '%')
+            ->lockForUpdate()
+            ->orderBy('kd_kabupaten_kota', 'DESC')
+            ->first();
+
+        if (!$lastProvinsi) {
+            return $prefix . '0000';
+        }
+
+        $lastId = $lastProvinsi->kd_kabupaten_kota;
+        $lastNumber = substr($lastId, -4);
+
+        $newNumber = str_pad(intval($lastNumber) + 1, 4, '0', STR_PAD_LEFT);
+        return $prefix . $newNumber;
+    }
+
+    public function syncKotaKabupaten(array $data)
+    {
+        try {
+            DB::beginTransaction();
+
+            $now = Carbon::now('Asia/Jakarta');
+            $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+            $deviceInfo = DeviceHelper::detectDevice($userAgent);
+            $deviceType = $deviceInfo['deviceType'] ?? 'UNKNOWN';
+            $device = $deviceInfo['browser'] ?? 'Tidak Diketahui';
+
+            foreach ($data as $item) {
+                $exist = tbl_master_kabupaten_kota::where(
+                    'id_kabupaten_kota',
+                    $item['id_kabupaten_kota']
+                )->first();
+
+                $kd_kabupaten_kota = $this->generateKdKabupatenKota();
+
+                if (!$exist) {
+                    $provinsi = tbl_master_provinsi::where(
+                        'id_provinsi',
+                        $item['province_id']
+                    )->first();
+
+                    tbl_master_kabupaten_kota::create([
+                        'kd_kabupaten_kota'   => $kd_kabupaten_kota,
+                        'id_kabupaten_kota'   => $item['id_kabupaten_kota'],
+                        'province_id'         => $item['province_id'],
+                        'kd_provinsi'         => $provinsi ? $provinsi->kd_provinsi : null,
+                        'nama_kabupaten_kota' => strtoupper($item['nama_kabupaten_kota']),
+                        'status_tampil'       => 'YA',
+                        'tgl_input'           => $now->toDateString(),
+                        'bln_input'           => $now->format('m'),
+                        'thn_input'           => $now->format('Y'),
+                        'waktu_input'         => $now->format('H:i:s'),
+                        'user_input'          => $item['user_input'] ?? 'SYSTEM',
+                        'alamat_device'       => request()->ip(),
+                        'type_device'         => $deviceType,
+                        'device'              => $device,
+                    ]);
+                }
+            }
+
+            DB::commit();
+            return true;
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('syncKotaKabupaten failed: ' . $e->getMessage());
+            throw $e; // ← lempar ke controller agar tidak diam-diam gagal
         }
     }
 }
