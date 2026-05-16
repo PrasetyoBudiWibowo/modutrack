@@ -4,19 +4,20 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class tbl_master_kabupaten_kota extends Model
+class tbl_master_kecamatan extends Model
 {
-    protected $table = 'tbl_master_kabupaten_kota';
-    protected $primaryKey = 'kd_kabupaten_kota';
+    protected $table = 'tbl_master_kecamatan';
+    protected $primaryKey = 'kd_kecamatan';
     public $incrementing = false;
     protected $keyType = 'string';
     public $timestamps = false;
 
     protected $fillable = [
+        'kd_kecamatan',
+        'id_kecamatan',
         'kd_kabupaten_kota',
-        'id_kabupaten_kota',
-        'kd_provinsi',
-        'nama_kabupaten_kota',
+        'regency_id',
+        'nama_kecamatan',
         'status_tampil',
         'tgl_input',
         'bln_input',
@@ -26,15 +27,10 @@ class tbl_master_kabupaten_kota extends Model
         'alamat_device',
         'type_device',
         'device',
-        'province_id',
     ];
 
-    protected $casts = [
-        'tgl_input' => 'date',
-    ];
-
-    public function provinsi()
+    public function kabupatenKota()
     {
-        return $this->belongsTo(tbl_master_provinsi::class, 'kd_provinsi', 'kd_provinsi');
+        return $this->belongsTo(tbl_master_kabupaten_kota::class, 'kd_kabupaten_kota', 'kd_kabupaten_kota');
     }
 }

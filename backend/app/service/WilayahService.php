@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Models\tbl_master_provinsi;
 use App\Models\tbl_master_kabupaten_kota;
+use App\Models\tbl_master_kecamatan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
@@ -53,6 +54,27 @@ class WilayahService
         }
 
         $lastId = $lastProvinsi->kd_kabupaten_kota;
+        $lastNumber = substr($lastId, -4);
+
+        $newNumber = str_pad(intval($lastNumber) + 1, 4, '0', STR_PAD_LEFT);
+        return $prefix . $newNumber;
+    }
+
+    private function generateKdKecamatan()
+    {
+        $currentMonth = Carbon::now()->format('Ym');
+        $prefix = 'KEC-' . $currentMonth . '-';
+
+        $lastProvinsi = tbl_master_kecamatan::where('kd_kecamatan', 'LIKE', $prefix . '%')
+            ->lockForUpdate()
+            ->orderBy('kd_kecamatan', 'DESC')
+            ->first();
+
+        if (!$lastProvinsi) {
+            return $prefix . '0000';
+        }
+
+        $lastId = $lastProvinsi->kd_kecamatan;
         $lastNumber = substr($lastId, -4);
 
         $newNumber = str_pad(intval($lastNumber) + 1, 4, '0', STR_PAD_LEFT);
@@ -125,9 +147,9 @@ class WilayahService
                     $item['id_kabupaten_kota']
                 )->first();
 
-                $kd_kabupaten_kota = $this->generateKdKabupatenKota();
-
                 if (!$exist) {
+                    $kd_kabupaten_kota = $this->generateKdKabupatenKota();
+
                     $provinsi = tbl_master_provinsi::where(
                         'id_provinsi',
                         $item['province_id']
@@ -148,6 +170,59 @@ class WilayahService
                         'alamat_device'       => request()->ip(),
                         'type_device'         => $deviceType,
                         'device'              => $device,
+                    ]);
+                }
+            }
+
+            DB::commit();
+            return true;
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('syncKotaKabupaten failed: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    public function syncKecamatan(array $data)
+    {
+        try {
+            DB::beginTransaction();
+
+            $now = Carbon::now('Asia/Jakarta');
+            $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+            $deviceInfo = DeviceHelper::detectDevice($userAgent);
+            $deviceType = $deviceInfo['deviceType'] ?? 'UNKNOWN';
+            $device = $deviceInfo['browser'] ?? 'Tidak Diketahui';
+
+            foreach ($data as $item) {
+                $exist = tbl_master_kecamatan::where(
+                    'id_kecamatan',
+                    $item['id_kecamatan']
+                )->first();
+
+                if (!$exist) {
+                    $kd_kecamatan = $this->generateKdKecamatan();
+
+                    $kabupatenKota = tbl_master_kabupaten_kota::where(
+                        'id_kabupaten_kota',
+                        $item['regency_id']
+                    )->first();
+
+                    tbl_master_kecamatan::create([
+                        'kd_kecamatan'      => $kd_kecamatan,
+                        'id_kecamatan'      => $item['id_kecamatan'],
+                        'kd_kabupaten_kota' => $kabupatenKota ? $kabupatenKota->kd_kabupaten_kota : null,
+                        'regency_id'        => $item['regency_id'],
+                        'nama_kecamatan'    => strtoupper($item['nama_kecamatan']),
+                        'status_tampil'     => 'YA',
+                        'tgl_input'         => $now->toDateString(),
+                        'bln_input'         => $now->format('m'),
+                        'thn_input'         => $now->format('Y'),
+                        'waktu_input'       => $now->format('H:i:s'),
+                        'user_input'        => $item['user_input'] ?? 'SYSTEM',
+                        'alamat_device'     => request()->ip(),
+                        'type_device'       => $deviceType,
+                        'device'            => $device,
                     ]);
                 }
             }

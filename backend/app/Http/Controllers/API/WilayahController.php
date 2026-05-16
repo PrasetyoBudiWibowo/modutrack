@@ -107,6 +107,70 @@ class WilayahController extends Controller
 
                 return response()->json([
                     'status' => false,
+                    'message' => 'Data Kabupate Kota kosong'
+                ], 422);
+            }
+
+            $data = $request->data;
+
+            if (!is_array($data) || count($data) <= 0) {
+
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Data Kabupate Kota kosong'
+                ], 422);
+            }
+
+            $dataToSave = [];
+
+            foreach ($data as $item) {
+                $dataToSave[] = [
+                    'id_kabupaten_kota'   => $item['id'],
+                    'nama_kabupaten_kota' => $item['name'],
+                    'province_id' => $item['province_id'],
+                    'user_input'    => $validateUser['user']->user_name ?? 'SYSTEM',
+                ];
+            }
+
+            // $log->info("Data: " . json_encode($dataToSave));
+
+            $this->wilayahService->syncKotaKabupaten($dataToSave);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Data Kabupaten/Kota berhasil disimpan'
+            ]);
+        } catch (\Throwable $th) {
+            $log->error($th->getMessage());
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Terjadi kesalahan pada server'
+            ], 500);
+        }
+    }
+
+    public function syncKecamatan(Request $request)
+    {
+        $log = AppLogger::getLogger('syncKecamatan');
+        try {
+            $validateUser = $this->authService
+                ->validateUser($request);
+
+            if (!$validateUser['status']) {
+
+                return response()->json([
+                    'status' => false,
+                    'message' => $validateUser['message']
+                ], $validateUser['code']);
+            }
+
+            $data = $request->data;
+
+            if (!is_array($data) || count($data) <= 0) {
+
+                return response()->json([
+                    'status' => false,
                     'message' => 'Data provinsi kosong'
                 ], 422);
             }
@@ -125,16 +189,15 @@ class WilayahController extends Controller
 
             foreach ($data as $item) {
                 $dataToSave[] = [
-                    'id_kabupaten_kota'   => $item['id'],
-                    'nama_kabupaten_kota' => $item['name'],
-                    'province_id' => $item['province_id'],
+                    'id_kecamatan'   => $item['id'],
+                    'nama_kecamatan' => $item['name'],
+                    'regency_id' => $item['regency_id'],
                     'user_input'    => $validateUser['user']->user_name ?? 'SYSTEM',
                 ];
             }
 
-            // $log->info("Data: " . json_encode($dataToSave));
 
-            $this->wilayahService->syncKotaKabupaten($dataToSave);
+            $this->wilayahService->syncKecamatan($dataToSave);
 
             return response()->json([
                 'status' => true,

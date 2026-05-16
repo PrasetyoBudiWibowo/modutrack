@@ -24,6 +24,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/provinsi', [WilayahController::class, 'provinsiGetAll']);
         Route::post('/provinsi/sync', [WilayahController::class, 'syncProvinsi']);
         Route::post('/kabupaten-kota/sync', [WilayahController::class, 'syncKotaKabupaten']);
+        Route::post('/kecamatan/sync', [WilayahController::class, 'syncKecamatan']);
     });
 });
 

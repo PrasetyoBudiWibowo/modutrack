@@ -35,6 +35,7 @@ export function DataTable<TData>({
 }: DataTableProps<TData>) {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [sorting, setSorting] = useState<SortingState>([]);
+  const [hoveredColId, setHoveredColId] = useState<string | null>(null);
 
   const table = useReactTable({
     data,
@@ -104,9 +105,9 @@ export function DataTable<TData>({
         </div>
       </div>
       {/* TABLE */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
         <table className="w-full text-sm">
-          <thead className="border-b border-gray-200 bg-gray-50">
+          <thead className="border-b border-gray-200 bg-gray-50 sticky top-0 z-10">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
@@ -146,11 +147,11 @@ export function DataTable<TData>({
               table.getRowModel().rows.map((row) => (
                 <tr
                   key={row.id}
-                  className=" border-b border-gray-100 transition-colors hover:bg-blue-50/40 ">
+                  className="border-b border-gray-100 transition-colors hover:bg-yellow-300">
                   {row.getVisibleCells().map((cell) => (
                     <td
                       key={cell.id}
-                      className=" whitespace-nowrap px-4 py-3 text-gray-700 ">
+                      className="whitespace-nowrap px-4 py-3 text-gray-700 hover:bg-yellow-300 cursor-default transition-colors">
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext(),
