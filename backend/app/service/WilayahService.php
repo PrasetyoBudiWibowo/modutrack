@@ -38,6 +38,27 @@ class WilayahService
         return $prefix . $newNumber;
     }
 
+    private function generateKdKabupatenKota()
+    {
+        $currentMonth = Carbon::now()->format('Ym');
+        $prefix = 'KAB-' . $currentMonth . '-';
+
+        $lastProvinsi = tbl_master_kabupaten_kota::where('kd_kabupaten_kota', 'LIKE', $prefix . '%')
+            ->lockForUpdate()
+            ->orderBy('kd_kabupaten_kota', 'DESC')
+            ->first();
+
+        if (!$lastProvinsi) {
+            return $prefix . '0000';
+        }
+
+        $lastId = $lastProvinsi->kd_kabupaten_kota;
+        $lastNumber = substr($lastId, -4);
+
+        $newNumber = str_pad(intval($lastNumber) + 1, 4, '0', STR_PAD_LEFT);
+        return $prefix . $newNumber;
+    }
+
     public function syncProvinsi(array $data)
     {
         try {
@@ -85,27 +106,6 @@ class WilayahService
             Log::error('syncProvinsi failed: ' . $e->getMessage());
             return false;
         }
-    }
-
-    private function generateKdKabupatenKota()
-    {
-        $currentMonth = Carbon::now()->format('Ym');
-        $prefix = 'KAB-' . $currentMonth . '-';
-
-        $lastProvinsi = tbl_master_kabupaten_kota::where('kd_kabupaten_kota', 'LIKE', $prefix . '%')
-            ->lockForUpdate()
-            ->orderBy('kd_kabupaten_kota', 'DESC')
-            ->first();
-
-        if (!$lastProvinsi) {
-            return $prefix . '0000';
-        }
-
-        $lastId = $lastProvinsi->kd_kabupaten_kota;
-        $lastNumber = substr($lastId, -4);
-
-        $newNumber = str_pad(intval($lastNumber) + 1, 4, '0', STR_PAD_LEFT);
-        return $prefix . $newNumber;
     }
 
     public function syncKotaKabupaten(array $data)
@@ -157,7 +157,7 @@ class WilayahService
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('syncKotaKabupaten failed: ' . $e->getMessage());
-            throw $e; // ← lempar ke controller agar tidak diam-diam gagal
+            throw $e;
         }
     }
 }
