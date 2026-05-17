@@ -212,4 +212,54 @@ class WilayahController extends Controller
             ], 500);
         }
     }
+
+    public function syncVillage(Request $request)
+    {
+        $log = AppLogger::getLogger('syncVillage');
+
+        try {
+            $validateUser = $this->authService->validateUser($request);
+
+            if (!$validateUser['status']) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => $validateUser['message']
+                ], $validateUser['code']);
+            }
+
+            $data = $request->data;
+
+            if (!is_array($data) || count($data) <= 0) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'Data kelurahan/desa kosong'
+                ], 422);
+            }
+
+            $dataToSave = [];
+
+            foreach ($data as $item) {
+                $dataToSave[] = [
+                    'id_village'  => $item['id'],
+                    'nama_village' => $item['name'],
+                    'district_id' => $item['district_id'],
+                    'user_input'  => $validateUser['user']->user_name ?? 'SYSTEM',
+                ];
+            }
+
+            $this->wilayahService->syncVillage($dataToSave);
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Data kelurahan/desa berhasil disimpan'
+            ]);
+        } catch (\Throwable $th) {
+            $log->error($th->getMessage());
+
+            return response()->json([
+                'status'  => false,
+                'message' => 'Terjadi kesalahan pada server'
+            ], 500);
+        }
+    }
 }

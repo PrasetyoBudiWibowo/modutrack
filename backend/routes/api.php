@@ -25,6 +25,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/provinsi/sync', [WilayahController::class, 'syncProvinsi']);
         Route::post('/kabupaten-kota/sync', [WilayahController::class, 'syncKotaKabupaten']);
         Route::post('/kecamatan/sync', [WilayahController::class, 'syncKecamatan']);
+        Route::post('/desa-kelurahan/sync', [WilayahController::class, 'syncVillage']);
     });
 });
 

@@ -5,6 +5,7 @@ namespace App\Service;
 use App\Models\tbl_master_provinsi;
 use App\Models\tbl_master_kabupaten_kota;
 use App\Models\tbl_master_kecamatan;
+use App\Models\tbl_master_village;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
@@ -78,6 +79,27 @@ class WilayahService
         $lastNumber = substr($lastId, -4);
 
         $newNumber = str_pad(intval($lastNumber) + 1, 4, '0', STR_PAD_LEFT);
+        return $prefix . $newNumber;
+    }
+
+    private function generateKdVillage()
+    {
+        $currentMonth = Carbon::now()->format('Ym');
+        $prefix = 'VIL-' . $currentMonth . '-';
+
+        $lastProvinsi = tbl_master_village::where('kd_village', 'LIKE', $prefix . '%')
+            ->lockForUpdate()
+            ->orderBy('kd_village', 'DESC')
+            ->first();
+
+        if (!$lastProvinsi) {
+            return $prefix . '000000';
+        }
+
+        $lastId = $lastProvinsi->kd_village;
+        $lastNumber = substr($lastId, -6);
+
+        $newNumber = str_pad(intval($lastNumber) + 1, 6, '0', STR_PAD_LEFT);
         return $prefix . $newNumber;
     }
 
@@ -232,6 +254,61 @@ class WilayahService
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('syncKotaKabupaten failed: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    public function syncVillage(array $data)
+    {
+        try {
+            DB::beginTransaction();
+
+            $now = Carbon::now('Asia/Jakarta');
+            $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+            $deviceInfo = DeviceHelper::detectDevice($userAgent);
+            $deviceType = $deviceInfo['deviceType'] ?? 'UNKNOWN';
+            $device = $deviceInfo['browser'] ?? 'Tidak Diketahui';
+
+            $waktu_input = $now->format('H:i:s');
+
+            foreach ($data as $item) {
+                $exist = tbl_master_village::where(
+                    'id_village',
+                    $item['id_village']
+                )->first();
+
+                if (!$exist) {
+                    $kecamatan = tbl_master_kecamatan::where(
+                        'id_kecamatan',
+                        $item['district_id']
+                    )->first();
+
+                    $kd_village = $this->generateKdVillage();
+
+                    tbl_master_village::create([
+                        'kd_village'   => $kd_village,
+                        'id_village'   => $item['id_village'],
+                        'kd_kecamatan' => $kecamatan ? $kecamatan->kd_kecamatan : null,
+                        'district_id'  => $item['district_id'],
+                        'nama_village' => strtoupper($item['nama_village']),
+                        'status_tampil' => 'YA',
+                        'tgl_input'    => $now->toDateString(),
+                        'bln_input'    => $now->format('m'),
+                        'thn_input'    => $now->format('Y'),
+                        'waktu_input'  => $waktu_input,
+                        'user_input'   => $item['user_input'] ?? 'SYSTEM',
+                        'alamat_device' => request()->ip(),
+                        'type_device'  => $deviceType,
+                        'device'       => $device,
+                    ]);
+                }
+            }
+
+            DB::commit();
+            return true;
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('syncVillage failed: ' . $e->getMessage());
             throw $e;
         }
     }

@@ -1,12 +1,17 @@
+"use client";
 interface FetchProgressProps {
   progress: {
     current: number;
     total: number;
     label: string;
   } | null;
+  title?: string;
 }
 
-export default function FetchProgressModal({ progress }: FetchProgressProps) {
+export default function FetchProgressModal({
+  progress,
+  title = "Mengambil Data",
+}: FetchProgressProps) {
   if (!progress) return null;
 
   const percentage =
@@ -20,9 +25,7 @@ export default function FetchProgressModal({ progress }: FetchProgressProps) {
         <div className="flex flex-col items-center gap-4">
           <div className="w-14 h-14 rounded-full border-4 border-blue-100 border-t-blue-500 animate-spin" />
           <div className="text-center">
-            <p className="text-sm font-medium text-gray-800">
-              Mengambil Data Kecamatan
-            </p>
+            <p className="text-sm font-medium text-gray-800">{title}</p>
             <p className="text-xs text-gray-500 mt-1 min-h-[16px]">
               {progress.label}
             </p>
@@ -31,7 +34,8 @@ export default function FetchProgressModal({ progress }: FetchProgressProps) {
             <div className="w-full">
               <div className="flex justify-between text-xs text-gray-500 mb-1">
                 <span>
-                  {progress.current} / {progress.total}
+                  {progress.current.toLocaleString("id-ID")} /{" "}
+                  {progress.total.toLocaleString("id-ID")}
                 </span>
                 <span>{percentage}%</span>
               </div>

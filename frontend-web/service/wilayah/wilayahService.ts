@@ -23,6 +23,12 @@ export type District = {
   name: string;
 };
 
+export type Village = {
+  id: string;
+  district_id: string;
+  name: string;
+};
+
 export type FetchProgress = {
   current: number;
   total: number;
@@ -105,6 +111,68 @@ export const getDistrictsExternal = async (
   return allDistricts;
 };
 
+export const getVillagesExternal = async (
+  onProgress?: (progress: FetchProgress) => void,
+): Promise<Village[]> => {
+  onProgress?.({ current: 0, total: 0, label: "Mengambil data provinsi..." });
+
+  const provinceRes = await fetch(
+    "https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json",
+  );
+  const provinces = await provinceRes.json();
+
+  let allRegencies: { id: string; name: string }[] = [];
+
+  for (let i = 0; i < provinces.length; i++) {
+    onProgress?.({
+      current: i + 1,
+      total: provinces.length,
+      label: `Mengambil kabupaten dari ${provinces[i].name}...`,
+    });
+
+    const regencyRes = await fetch(
+      `https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${provinces[i].id}.json`,
+    );
+    const regencies = await regencyRes.json();
+    allRegencies = [...allRegencies, ...regencies];
+  }
+
+  let allDistricts: { id: string; name: string }[] = [];
+
+  for (let i = 0; i < allRegencies.length; i++) {
+    onProgress?.({
+      current: i + 1,
+      total: allRegencies.length,
+      label: `Mengambil kecamatan dari ${allRegencies[i].name}...`,
+    });
+
+    const districtRes = await fetch(
+      `https://www.emsifa.com/api-wilayah-indonesia/api/districts/${allRegencies[i].id}.json`,
+    );
+    const districts = await districtRes.json();
+    allDistricts = [...allDistricts, ...districts];
+  }
+
+  let allVillages: Village[] = [];
+
+  for (let i = 0; i < allDistricts.length; i++) {
+    onProgress?.({
+      current: i + 1,
+      total: allDistricts.length,
+      label: `Mengambil kelurahan dari ${allDistricts[i].name}...`,
+    });
+
+    const villageRes = await fetch(
+      `https://www.emsifa.com/api-wilayah-indonesia/api/villages/${allDistricts[i].id}.json`,
+    );
+    const villages = await villageRes.json();
+    allVillages = [...allVillages, ...villages];
+  }
+
+  onProgress?.(null);
+  return allVillages;
+};
+
 export const syncProvince = async (kd_user: string, data: Province[]) => {
   const res = await api.post("/wilayah/provinsi/sync", {
     kd_user,
@@ -138,6 +206,21 @@ export const syncDistrict = async (
   for (let i = 0; i < data.length; i += BATCH_SIZE) {
     const batch = data.slice(i, i + BATCH_SIZE);
     await api.post("/wilayah/kecamatan/sync", {
+      kd_user,
+      data: batch,
+    });
+  }
+};
+
+export const syncVillage = async (
+  kd_user: string,
+  data: Village[],
+): Promise<void> => {
+  const BATCH_SIZE = 500;
+
+  for (let i = 0; i < data.length; i += BATCH_SIZE) {
+    const batch = data.slice(i, i + BATCH_SIZE);
+    await api.post("/wilayah/desa-kelurahan/sync", {
       kd_user,
       data: batch,
     });

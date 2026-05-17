@@ -36,7 +36,7 @@ export const staticMenu: MenuItem[] = [
         url: "/provinsi",
       },
       {
-        name: "Kota",
+        name: "Kota / Kabupaten",
         url: "/kota",
       },
       {
@@ -44,7 +44,7 @@ export const staticMenu: MenuItem[] = [
         url: "/kecamatan",
       },
       {
-        name: "Kelurahan",
+        name: "Kelurahan / Desa",
         url: "/kelurahan",
       },
     ],
