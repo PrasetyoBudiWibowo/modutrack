@@ -25,6 +25,10 @@ export const staticMenu: MenuItem[] = [
         name: "Module",
         url: "/dashboard/modules",
       },
+      {
+        name: "Menu",
+        url: "/dashboard/menus",
+      },
     ],
   },
   {

@@ -5,6 +5,7 @@ use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\WilayahController;
 use App\Http\Controllers\API\ModuleController;
+use App\Http\Controllers\API\MenuController;
 
 // Route::get('/tes', function () {
 //     return 'API works';
@@ -33,6 +34,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/', [ModuleController::class, 'getAllModule']);
         Route::post('/create', [ModuleController::class, 'createModule']);
         Route::patch('/{kdModule}/toggle-status', [ModuleController::class, 'toggleStatusModule']);
+    });
+
+    Route::prefix('menu')->group(function () {
+        Route::get('/', [MenuController::class, 'getAllMenu']);
+        Route::get('/{kdModule}', [MenuController::class, 'getMenuByModule']);
+        Route::post('/create', [MenuController::class, 'createMenu']);
+        Route::patch('/{kdMenu}/toggle-status', [MenuController::class, 'toggleStatusMenu']);
     });
 });
 

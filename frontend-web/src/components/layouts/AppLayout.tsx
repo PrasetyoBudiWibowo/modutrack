@@ -9,6 +9,7 @@ import api from "@/service/api";
 import { useAuthStore } from "@/src/store/auth/authStore";
 import { staticMenu } from "@/src/config/menu";
 import { iconMap } from "@/src/config/iconMap";
+import SidebarMenu from "./SidebarMenu";
 
 interface Props {
   children: ReactNode;
@@ -130,7 +131,6 @@ export default function AppLayout({ children }: Props) {
               );
             }
 
-            // MENU DENGAN CHILD
             return (
               <div key={index}>
                 <button
