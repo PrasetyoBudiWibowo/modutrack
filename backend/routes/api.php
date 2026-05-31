@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\WilayahController;
+use App\Http\Controllers\API\ModuleController;
 
 // Route::get('/tes', function () {
 //     return 'API works';
@@ -26,6 +27,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/kabupaten-kota/sync', [WilayahController::class, 'syncKotaKabupaten']);
         Route::post('/kecamatan/sync', [WilayahController::class, 'syncKecamatan']);
         Route::post('/desa-kelurahan/sync', [WilayahController::class, 'syncVillage']);
+    });
+
+    Route::prefix('module')->group(function () {
+        Route::get('/', [ModuleController::class, 'getAllModule']);
+        Route::post('/create', [ModuleController::class, 'createModule']);
+        Route::patch('/{kdModule}/toggle-status', [ModuleController::class, 'toggleStatusModule']);
     });
 });
 
