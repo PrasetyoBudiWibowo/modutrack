@@ -76,7 +76,6 @@ export default function ModalCreateMenu({ show, onClose, onSuccess }: Props) {
   ) => {
     const { name, value } = e.target;
 
-    // RESET PARENT MENU SAAT MODULE BERUBAH
     if (name === "kd_module") {
       setInput((prev) => ({
         ...prev,
