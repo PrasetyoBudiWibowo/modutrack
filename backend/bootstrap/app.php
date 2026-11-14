@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -16,9 +17,16 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/login',
             'api/check-session',
             'api/logout',
-            'token.timeout' => \App\Http\Middleware\CheckTokenTimeout::class,
+        ]);
+
+        $middleware->alias([
+            'token.timeout'  => \App\Http\Middleware\CheckTokenTimeout::class,
+            'session.active' => \App\Http\Middleware\EnsureSessionActive::class,
+            'level'          => \App\Http\Middleware\EnsureLevel::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $exceptions->shouldRenderJsonWhen(function (Request $request, Throwable $e) {
+            return $request->is('api/*') || $request->expectsJson();
+        });
     })->create();

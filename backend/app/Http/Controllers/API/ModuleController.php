@@ -4,7 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-
+use Illuminate\Validation\ValidationException;
 use App\Helper\AppLogger;
 use App\Service\ModuleService;
 use App\Service\AuthService;
@@ -38,14 +38,6 @@ class ModuleController extends Controller
         $log = AppLogger::getLogger('createModule');
 
         try {
-            $validateUser = $this->authService->validateUser($request);
-
-            if (!$validateUser['status']) {
-                return response()->json([
-                    'status'  => false,
-                    'message' => $validateUser['message'],
-                ], $validateUser['code']);
-            }
 
             $request->validate([
                 'nama_module' => 'required|string|max:100',
@@ -61,7 +53,7 @@ class ModuleController extends Controller
 
             $result = $this->moduleService->createModule(
                 $request->all(),
-                $validateUser['user']->user_name
+                $request->user()->user_name
             );
 
             if (!$result['status']) {
@@ -75,7 +67,7 @@ class ModuleController extends Controller
                 'status'  => true,
                 'message' => $result['message'],
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return response()->json([
                 'status' => false,
                 'errors' => $e->errors(),
@@ -95,18 +87,10 @@ class ModuleController extends Controller
         $log = AppLogger::getLogger('toggleStatusModule');
 
         try {
-            $validateUser = $this->authService->validateUser($request);
-
-            if (!$validateUser['status']) {
-                return response()->json([
-                    'status'  => false,
-                    'message' => $validateUser['message'],
-                ], $validateUser['code']);
-            }
 
             $result = $this->moduleService->toggleStatusModule(
                 $kdModule,
-                $validateUser['user']->user_name
+                $request->user()->user_name
             );
 
             if (!$result['status']) {
@@ -135,14 +119,6 @@ class ModuleController extends Controller
         $log = AppLogger::getLogger('updateModule');
 
         try {
-            $validateUser = $this->authService->validateUser($request);
-
-            if (!$validateUser['status']) {
-                return response()->json([
-                    'status'  => false,
-                    'message' => $validateUser['message'],
-                ], $validateUser['code']);
-            }
 
             $request->validate([
                 'nama_module' => 'required|string|max:100',
@@ -169,7 +145,7 @@ class ModuleController extends Controller
                 'status'  => true,
                 'message' => $result['message'],
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return response()->json([
                 'status' => false,
                 'errors' => $e->errors(),

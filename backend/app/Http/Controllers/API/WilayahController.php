@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use App\Service\WilayahService;
 use App\Service\AuthService;
 
@@ -38,18 +39,10 @@ class WilayahController extends Controller
         $log = AppLogger::getLogger('syncProvinsi');
 
         try {
-            $validateUser = $this->authService
-                ->validateUser($request);
-
-            if (!$validateUser['status']) {
-
-                return response()->json([
-                    'status' => false,
-                    'message' => $validateUser['message']
-                ], $validateUser['code']);
-            }
 
             $data = $request->data;
+
+            $userName = $request->user()->user_name;
 
             if (!is_array($data) || count($data) <= 0) {
 
@@ -65,7 +58,7 @@ class WilayahController extends Controller
                 $dataToSave[] = [
                     'id_provinsi'   => $item['id'],
                     'nama_provinsi' => $item['name'],
-                    'user_input'    => $validateUser['user']->user_name ?? 'SYSTEM',
+                    'user_input'    => $userName
                 ];
             }
 
@@ -75,6 +68,12 @@ class WilayahController extends Controller
                 'status' => true,
                 'message' => 'Data provinsi berhasil disimpan'
             ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => collect($e->errors())->flatten()->first(),
+                'errors'  => $e->errors(),
+            ], 422);
         } catch (\Throwable $th) {
             $log->error($th->getMessage());
 
@@ -90,18 +89,9 @@ class WilayahController extends Controller
         $log = AppLogger::getLogger('syncKotaKabupaten');
 
         try {
-            $validateUser = $this->authService
-                ->validateUser($request);
-
-            if (!$validateUser['status']) {
-
-                return response()->json([
-                    'status' => false,
-                    'message' => $validateUser['message']
-                ], $validateUser['code']);
-            }
-
             $data = $request->data;
+
+            $userName = $request->user()->user_name;
 
             if (!is_array($data) || count($data) <= 0) {
 
@@ -128,7 +118,7 @@ class WilayahController extends Controller
                     'id_kabupaten_kota'   => $item['id'],
                     'nama_kabupaten_kota' => $item['name'],
                     'province_id' => $item['province_id'],
-                    'user_input'    => $validateUser['user']->user_name ?? 'SYSTEM',
+                    'user_input'    => $userName
                 ];
             }
 
@@ -140,6 +130,12 @@ class WilayahController extends Controller
                 'status' => true,
                 'message' => 'Data Kabupaten/Kota berhasil disimpan'
             ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => collect($e->errors())->flatten()->first(),
+                'errors'  => $e->errors(),
+            ], 422);
         } catch (\Throwable $th) {
             $log->error($th->getMessage());
 
@@ -154,18 +150,9 @@ class WilayahController extends Controller
     {
         $log = AppLogger::getLogger('syncKecamatan');
         try {
-            $validateUser = $this->authService
-                ->validateUser($request);
-
-            if (!$validateUser['status']) {
-
-                return response()->json([
-                    'status' => false,
-                    'message' => $validateUser['message']
-                ], $validateUser['code']);
-            }
-
             $data = $request->data;
+
+            $userName = $request->user()->user_name;
 
             if (!is_array($data) || count($data) <= 0) {
 
@@ -192,7 +179,7 @@ class WilayahController extends Controller
                     'id_kecamatan'   => $item['id'],
                     'nama_kecamatan' => $item['name'],
                     'regency_id' => $item['regency_id'],
-                    'user_input'    => $validateUser['user']->user_name ?? 'SYSTEM',
+                    'user_input'    => $userName
                 ];
             }
 
@@ -218,16 +205,9 @@ class WilayahController extends Controller
         $log = AppLogger::getLogger('syncVillage');
 
         try {
-            $validateUser = $this->authService->validateUser($request);
-
-            if (!$validateUser['status']) {
-                return response()->json([
-                    'status'  => false,
-                    'message' => $validateUser['message']
-                ], $validateUser['code']);
-            }
-
             $data = $request->data;
+
+            $userName = $request->user()->user_name;
 
             if (!is_array($data) || count($data) <= 0) {
                 return response()->json([
@@ -243,7 +223,7 @@ class WilayahController extends Controller
                     'id_village'  => $item['id'],
                     'nama_village' => $item['name'],
                     'district_id' => $item['district_id'],
-                    'user_input'  => $validateUser['user']->user_name ?? 'SYSTEM',
+                    'user_input'  => $userName
                 ];
             }
 
@@ -253,11 +233,17 @@ class WilayahController extends Controller
                 'status'  => true,
                 'message' => 'Data kelurahan/desa berhasil disimpan'
             ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => collect($e->errors())->flatten()->first(),
+                'errors'  => $e->errors(),
+            ], 422);
         } catch (\Throwable $th) {
             $log->error($th->getMessage());
 
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'Terjadi kesalahan pada server'
             ], 500);
         }

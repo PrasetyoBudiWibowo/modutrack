@@ -1,0 +1,41 @@
+<?php
+
+namespace App\Http\Middleware;
+
+use Carbon\Carbon;
+use Closure;
+use Illuminate\Http\Request;
+
+class EnsureSessionActive
+{
+    public function handle(Request $request, Closure $next)
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated'], 401);
+        }
+
+        $token = $user->currentAccessToken();
+        $now   = Carbon::now('Asia/Jakarta');
+
+        if ($token && $token->last_activity) {
+            $last = Carbon::parse($token->last_activity)->timezone('Asia/Jakarta');
+
+            $expired = $user->level_user_id == 1
+                ? !$last->isSameDay($now)
+                : $last->diffInMinutes($now) >= 30;
+
+            if ($expired) {
+                $user->tokens()->delete();
+                return response()->json(['status' => false, 'message' => 'Session expired'], 401);
+            }
+        }
+
+        if ($token) {
+            $token->forceFill(['last_activity' => $now])->save();
+        }
+
+        return $next($request);
+    }
+}

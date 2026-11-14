@@ -9,7 +9,6 @@ import Toolbar from "@/src/components/data-table/toolbar";
 import { DataTable } from "@/src/components/data-table/data-table";
 import { regencyColumns } from "@/src/components/data-table/columns/regency/regencyColumns";
 import { syncRegency } from "@/service/wilayah/wilayahService";
-import { useAuthStore } from "@/src/store/auth/authStore";
 import { toast } from "sonner";
 import Swal from "sweetalert2";
 
@@ -17,19 +16,9 @@ export default function RegencyPage() {
   const { filteredData, search, setSearch, loading, getRegency, regency } =
     useRegency();
 
-  const { sessionUser } = useAuthStore();
   const [syncLoading, setSyncLoading] = useState(false);
 
   const handleSyncRegency = async () => {
-    if (!sessionUser?.kd_user) {
-      Swal.fire({
-        icon: "warning",
-        title: "Session",
-        text: "User tidak ditemukan",
-      });
-      return;
-    }
-
     if (regency.length === 0) {
       toast.warning("Tidak ada data untuk disync");
       return;
@@ -37,7 +26,7 @@ export default function RegencyPage() {
 
     try {
       setSyncLoading(true);
-      await syncRegency(sessionUser.kd_user, regency);
+      await syncRegency(regency);
       toast.success("Data kabupaten/kota berhasil disimpan");
       await getRegency(); // refresh tabel setelah sync
     } catch (error) {

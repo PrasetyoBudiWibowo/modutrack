@@ -8,7 +8,6 @@ import Toolbar from "@/src/components/data-table/toolbar";
 import { DataTable } from "@/src/components/data-table/data-table";
 import { provinsiColumns } from "@/src/components/data-table/columns/province/provinsiColumns";
 import { syncProvince } from "@/service/wilayah/wilayahService";
-import { useAuthStore } from "@/src/store/auth/authStore";
 import { toast } from "sonner";
 import Swal from "sweetalert2";
 
@@ -16,19 +15,9 @@ export default function ProvinsiPage() {
   const { filteredData, search, setSearch, loading, getProvinces, provinces } =
     useProvinsi();
 
-  const { sessionUser } = useAuthStore();
   const [syncLoading, setSyncLoading] = useState(false);
 
   const handleSyncProvinsi = async () => {
-    if (!sessionUser?.kd_user) {
-      Swal.fire({
-        icon: "warning",
-        title: "Session",
-        text: "User tidak ditemukan",
-      });
-      return;
-    }
-
     if (provinces.length === 0) {
       toast.warning("Tidak ada data untuk disync");
       return;
@@ -36,7 +25,7 @@ export default function ProvinsiPage() {
 
     try {
       setSyncLoading(true);
-      await syncProvince(sessionUser.kd_user, provinces);
+      await syncProvince(provinces);
       toast.success("Data provinsi berhasil disimpan");
       await getProvinces();
     } catch (error) {

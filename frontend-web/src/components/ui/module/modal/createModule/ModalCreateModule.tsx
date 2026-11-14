@@ -69,21 +69,12 @@ export default function ModalCreateModule({ show, onClose, onSuccess }: Props) {
   };
 
   const handleSave = async () => {
-    if (!sessionUser?.kd_user) {
-      Swal.fire({
-        icon: "warning",
-        title: "Session",
-        text: "User tidak ditemukan",
-      });
-      return;
-    }
-
     if (!validate()) return;
 
     try {
       setLoadingSave(true);
 
-      const result = await createModule(sessionUser.kd_user, input);
+      const result = await createModule(input);
 
       if (!result.status) {
         Swal.fire({

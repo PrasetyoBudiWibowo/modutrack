@@ -211,16 +211,12 @@ class AuthService
             'status' => true,
             'user_model' => $user,
             'data' => [
-                'kd_user' =>  Crypt::encryptString($user->kd_user),
                 'user_name' => $user->user_name,
                 'level_user_id' => $user->level_user_id,
-                'status_user' => $user->status_user,
-                'blokir' => $user->blokir,
                 'img_user' => $user->img_user,
                 'format_img_user' => $user->format_img_user,
                 'level_user' => [
                     [
-                        'id' => $user->level->id,
                         'level_user' => $user->level->level_user,
                     ]
                 ],

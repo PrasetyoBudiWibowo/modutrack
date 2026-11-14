@@ -33,9 +33,8 @@ export const getAllMenu = async () => {
   return res.data;
 };
 
-export const createMenu = async (kd_user: string, data: MenuInput) => {
+export const createMenu = async (data: MenuInput) => {
   const res = await api.post("/menu/create", {
-    kd_user,
     ...data,
   });
   return res.data;

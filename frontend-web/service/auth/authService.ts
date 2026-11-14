@@ -2,7 +2,6 @@ import api from "@/service/api";
 import axios from "axios";
 
 export type SessionUser = {
-  kd_user: string;
   user_name: string;
   level_user_id: number;
   level_user: string;

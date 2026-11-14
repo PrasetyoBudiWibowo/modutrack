@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use App\Helper\AppLogger;
 use App\Service\MenuService;
 use App\Service\AuthService;
@@ -48,14 +49,6 @@ class MenuController extends Controller
         $log = AppLogger::getLogger('createMenu');
 
         try {
-            $validateUser = $this->authService->validateUser($request);
-
-            if (!$validateUser['status']) {
-                return response()->json([
-                    'status'  => false,
-                    'message' => $validateUser['message'],
-                ], $validateUser['code']);
-            }
 
             $isParent = $request->boolean('is_parent');
 
@@ -89,7 +82,7 @@ class MenuController extends Controller
 
             $result = $this->menuService->createMenu(
                 $request->all(),
-                $validateUser['user']->user_name,
+                $request->user()->user_name
             );
 
             if (!$result['status']) {
@@ -103,7 +96,7 @@ class MenuController extends Controller
                 'status'  => true,
                 'message' => $result['message'],
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return response()->json([
                 'status' => false,
                 'errors' => $e->errors(),
@@ -123,14 +116,6 @@ class MenuController extends Controller
         $log = AppLogger::getLogger('toggleStatusMenu');
 
         try {
-            $validateUser = $this->authService->validateUser($request);
-
-            if (!$validateUser['status']) {
-                return response()->json([
-                    'status'  => false,
-                    'message' => $validateUser['message'],
-                ], $validateUser['code']);
-            }
 
             $result = $this->menuService->toggleStatusMenu($kdMenu);
 

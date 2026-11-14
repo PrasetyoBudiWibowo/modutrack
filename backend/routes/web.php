@@ -8,7 +8,7 @@ Route::get('/', function () {
 });
 
 Route::prefix('api')->group(function () {
-    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
     // Route::get('/check-session', [AuthController::class, 'checkSession']);
     // Route::post('/logout', [AuthController::class, 'logout']);
 });

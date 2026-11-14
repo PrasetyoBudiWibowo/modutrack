@@ -1,7 +1,6 @@
 import api from "@/service/api";
 
 export type User = {
-  kd_user: string;
   user_name: string;
   level_user_id: number;
   status_user: string;

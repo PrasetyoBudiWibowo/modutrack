@@ -10,7 +10,6 @@ import type {
   ModuleInput,
   ModuleInputErrors,
 } from "@/service/module/moduleService";
-import { useAuthStore } from "@/src/store/auth/authStore";
 
 interface Props {
   show: boolean;
@@ -25,9 +24,6 @@ export default function ModalEditModule({
   onClose,
   onSuccess,
 }: Props) {
-  const { sessionUser } = useAuthStore();
-
-  // Diisi sekali saat mount. Parent memakai key={kd_module} agar remount per item.
   const [input, setInput] = useState<ModuleInput>({
     nama_module: module?.nama_module ?? "",
     icon_module: module?.icon_module ?? "",
@@ -75,25 +71,12 @@ export default function ModalEditModule({
   };
 
   const handleSave = async () => {
-    if (!sessionUser?.kd_user) {
-      Swal.fire({
-        icon: "warning",
-        title: "Session",
-        text: "User tidak ditemukan",
-      });
-      return;
-    }
-
     if (!validate()) return;
 
     try {
       setLoadingSave(true);
 
-      const result = await updateModule(
-        module.kd_module,
-        sessionUser.kd_user,
-        input,
-      );
+      const result = await updateModule(module.kd_module, input);
 
       if (!result.status) {
         Swal.fire({ icon: "error", title: "Gagal", text: result.message });

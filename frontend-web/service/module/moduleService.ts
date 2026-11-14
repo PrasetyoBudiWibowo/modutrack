@@ -21,21 +21,13 @@ export const getAllModule = async () => {
   return res.data;
 };
 
-export const createModule = async (kd_user: string, data: ModuleInput) => {
-  const res = await api.post("/module/create", {
-    kd_user,
-    ...data,
-  });
+export const createModule = async (data: ModuleInput) => {
+  const res = await api.post("/module/create", data);
   return res.data;
 };
 
-export const toggleStatusModule = async (
-  kd_module: string,
-  kd_user: string,
-) => {
-  const res = await api.patch(`/module/${kd_module}/toggle-status`, {
-    kd_user,
-  });
+export const toggleStatusModule = async (kd_module: string) => {
+  const res = await api.patch(`/module/${kd_module}/toggle-status`);
   return res.data;
 };
 
@@ -43,14 +35,7 @@ export type ModuleInputErrors = {
   [K in keyof ModuleInput]?: string;
 };
 
-export const updateModule = async (
-  kd_module: string,
-  kd_user: string,
-  data: ModuleInput,
-) => {
-  const res = await api.put(`/module/${kd_module}`, {
-    kd_user,
-    ...data,
-  });
+export const updateModule = async (kd_module: string, data: ModuleInput) => {
+  const res = await api.put(`/module/${kd_module}`, data);
   return res.data;
 };

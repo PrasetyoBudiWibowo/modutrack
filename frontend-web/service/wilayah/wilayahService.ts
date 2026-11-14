@@ -173,11 +173,8 @@ export const getVillagesExternal = async (
   return allVillages;
 };
 
-export const syncProvince = async (kd_user: string, data: Province[]) => {
-  const res = await api.post("/wilayah/provinsi/sync", {
-    kd_user,
-    data,
-  });
+export const syncProvince = async (data: Province[]) => {
+  const res = await api.post("/wilayah/provinsi/sync", { data });
 
   return res.data;
 };
@@ -188,40 +185,29 @@ export const getProvinceDatabase = async (): Promise<ProvinceDatabase[]> => {
   return res.data.data;
 };
 
-export const syncRegency = async (kd_user: string, data: Regency[]) => {
-  const res = await api.post("/wilayah/kabupaten-kota/sync", {
-    kd_user,
-    data,
-  });
+export const syncRegency = async (data: Regency[]) => {
+  const res = await api.post("/wilayah/kabupaten-kota/sync", { data });
 
   return res.data;
 };
 
-export const syncDistrict = async (
-  kd_user: string,
-  data: District[],
-): Promise<void> => {
+export const syncDistrict = async (data: District[]): Promise<void> => {
   const BATCH_SIZE = 200;
 
   for (let i = 0; i < data.length; i += BATCH_SIZE) {
     const batch = data.slice(i, i + BATCH_SIZE);
     await api.post("/wilayah/kecamatan/sync", {
-      kd_user,
       data: batch,
     });
   }
 };
 
-export const syncVillage = async (
-  kd_user: string,
-  data: Village[],
-): Promise<void> => {
+export const syncVillage = async (data: Village[]): Promise<void> => {
   const BATCH_SIZE = 500;
 
   for (let i = 0; i < data.length; i += BATCH_SIZE) {
     const batch = data.slice(i, i + BATCH_SIZE);
     await api.post("/wilayah/desa-kelurahan/sync", {
-      kd_user,
       data: batch,
     });
   }
