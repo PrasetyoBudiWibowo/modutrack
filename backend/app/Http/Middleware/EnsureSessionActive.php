@@ -17,7 +17,8 @@ class EnsureSessionActive
         }
 
         $token = $user->currentAccessToken();
-        $now   = Carbon::now('Asia/Jakarta');
+        $now = now();
+        $last = Carbon::parse($token->last_activity);
 
         if ($token && $token->last_activity) {
             $last = Carbon::parse($token->last_activity)->timezone('Asia/Jakarta');

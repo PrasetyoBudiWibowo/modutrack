@@ -69,46 +69,34 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $log = AppLogger::getLogger('VALIDASI LOGIN');
+
         try {
-            if (!$request->isMethod('post')) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => "Metode request tidak valid di auth_login"
-                ], 405);
-            }
-
-            $log->info("<=== LOLOS TAHAP 1 =====>");
-
             $validator = Validator::make($request->all(), [
-                'user_name' => ['required', 'regex:/^[A-Za-z\s]+$/'],
-                'password'  => 'required'
+                'user_name' => ['required', 'regex:/^[A-Za-z\s]+$/', 'max:100'],
+                'password'  => ['required', 'string', 'max:255'],
             ], [
                 'user_name.required' => 'User name tidak boleh kosong',
                 'user_name.regex'    => 'User name hanya boleh mengandung huruf dan spasi',
-                'password.required'  => 'Password tidak boleh kosong'
+                'password.required'  => 'Password tidak boleh kosong',
             ]);
 
             if ($validator->fails()) {
                 return response()->json([
                     'status' => 'fail',
-                    'errors' => $validator->errors()
+                    'errors' => $validator->errors(),
                 ], 422);
             }
 
-            $log->info("<=== LOLOS TAHAP 2 =====>");
-
-            $result = $this->authService->login($request->all());
+            $result = $this->authService->login($validator->validated());
 
             if (!$result['status']) {
+                $log->warning('Login gagal: ' . $request->input('user_name') . ' | IP ' . $request->ip());
+
                 return response()->json([
-                    'status' => 'fail',
-                    'message' => $result['message']
-                ]);
+                    'status'  => 'fail',
+                    'message' => 'User name atau password salah',
+                ], 401);
             }
-
-            $log->info("<=== LOLOS TAHAP 3 =====>");
-
-            $user = $result['data'];
 
             $userModel = $result['user_model'];
 
@@ -116,25 +104,22 @@ class AuthController extends Controller
 
             $tokenResult = $userModel->createToken('auth_token');
 
-            $token = $tokenResult->plainTextToken;
-
             $tokenResult->accessToken->forceFill([
                 'last_activity' => now(),
             ])->save();
 
-            $log->info("<=== BERHASIL LOGIN =====>");
-
             return response()->json([
-                'status' => 'success',
+                'status'  => 'success',
                 'message' => 'Login berhasil',
-                'user_logged_in' => true,
-                'token' => $token,
-                'user' => $user,
+                'token'   => $tokenResult->plainTextToken,
+                'user'    => $result['data'],
             ]);
         } catch (\Throwable $th) {
+            $log->error($th->getMessage());
+
             return response()->json([
-                'status' => 'error',
-                'message' => $th->getMessage(),
+                'status'  => 'error',
+                'message' => 'Terjadi kesalahan pada server',
             ], 500);
         }
     }
@@ -185,10 +170,7 @@ class AuthController extends Controller
         return response()->json([
             'status' => 'authenticated',
             'user' => [
-                'kd_user'         => Crypt::encryptString($user->kd_user),
                 'user_name'       => $user->user_name,
-                'level_user_id'   => $user->level_user_id,
-                'level_user'      => $user->level->level_user ?? null,
                 'img_user'        => $user->img_user,
                 'format_img_user' => $user->format_img_user,
                 'status_user'     => $user->status_user,
