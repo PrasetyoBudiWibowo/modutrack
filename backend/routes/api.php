@@ -34,6 +34,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/', [ModuleController::class, 'getAllModule']);
         Route::post('/create', [ModuleController::class, 'createModule']);
         Route::patch('/{kdModule}/toggle-status', [ModuleController::class, 'toggleStatusModule']);
+        Route::put('/{kdModule}', [ModuleController::class, 'updateModule']);
     });
 
     Route::prefix('menu')->group(function () {

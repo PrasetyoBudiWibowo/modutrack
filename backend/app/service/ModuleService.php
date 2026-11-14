@@ -120,4 +120,45 @@ class ModuleService
             ];
         }
     }
+
+    public function updateModule(string $kdModule, array $data)
+    {
+        try {
+            DB::beginTransaction();
+
+            $module = MasterModule::where('kd_module', $kdModule)->first();
+
+            if (!$module) {
+                DB::rollBack();
+                return [
+                    'status'  => false,
+                    'code'    => 404,
+                    'message' => 'Module tidak ditemukan',
+                ];
+            }
+
+            $module->update([
+                'nama_module' => strtoupper($data['nama_module']),
+                'icon_module' => $data['icon_module'] ?? null,
+                'url_module'  => $data['url_module'] ?? null,
+                'urutan'      => $data['urutan'] ?? 0,
+            ]);
+
+            DB::commit();
+
+            return [
+                'status'  => true,
+                'message' => 'Module berhasil diperbarui',
+            ];
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('updateModule failed: ' . $e->getMessage());
+
+            return [
+                'status'  => false,
+                'code'    => 500,
+                'message' => 'Terjadi kesalahan saat memperbarui module',
+            ];
+        }
+    }
 }

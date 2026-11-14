@@ -129,4 +129,58 @@ class ModuleController extends Controller
             ], 500);
         }
     }
+
+    public function updateModule(Request $request, string $kdModule)
+    {
+        $log = AppLogger::getLogger('updateModule');
+
+        try {
+            $validateUser = $this->authService->validateUser($request);
+
+            if (!$validateUser['status']) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => $validateUser['message'],
+                ], $validateUser['code']);
+            }
+
+            $request->validate([
+                'nama_module' => 'required|string|max:100',
+                'icon_module' => 'nullable|string|max:50',
+                'url_module'  => 'nullable|string|max:100',
+                'urutan'      => 'nullable|integer|min:0',
+            ], [
+                'nama_module.required' => 'Nama module tidak boleh kosong',
+                'nama_module.max'      => 'Nama module maksimal 100 karakter',
+                'urutan.integer'       => 'Urutan harus berupa angka',
+                'urutan.min'           => 'Urutan minimal 0',
+            ]);
+
+            $result = $this->moduleService->updateModule($kdModule, $request->all());
+
+            if (!$result['status']) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => $result['message'],
+                ], $result['code'] ?? 500);
+            }
+
+            return response()->json([
+                'status'  => true,
+                'message' => $result['message'],
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status' => false,
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Throwable $th) {
+            $log->error($th->getMessage());
+
+            return response()->json([
+                'status'  => false,
+                'message' => 'Terjadi kesalahan pada server',
+            ], 500);
+        }
+    }
 }
