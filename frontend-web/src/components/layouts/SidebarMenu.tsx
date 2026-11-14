@@ -24,15 +24,17 @@ export default function SidebarMenu({ item, sidebarOpen, depth = 0 }: Props) {
         href={item.url!}
         style={{ paddingLeft }}
         className="flex items-center gap-3 py-2 pr-3 rounded-lg hover:bg-gray-100 transition">
-        {Icon && depth === 0 && <Icon size={18} />}
-        {depth > 0 && sidebarOpen && (
+        {Icon ? (
+          <Icon size={18} className="flex-shrink-0" />
+        ) : depth > 0 && sidebarOpen ? (
           <span className="w-1 h-1 rounded-full bg-gray-400 flex-shrink-0" />
-        )}
+        ) : null}
         {sidebarOpen && <span className="text-sm">{item.name}</span>}
       </Link>
     );
   }
 
+  // MENU DENGAN CHILD
   return (
     <div>
       <button
@@ -40,10 +42,11 @@ export default function SidebarMenu({ item, sidebarOpen, depth = 0 }: Props) {
         style={{ paddingLeft }}
         className="w-full flex items-center justify-between py-2 pr-3 rounded-lg hover:bg-gray-100 transition">
         <div className="flex items-center gap-3">
-          {Icon && depth === 0 && <Icon size={18} />}
-          {depth > 0 && sidebarOpen && (
+          {Icon ? (
+            <Icon size={18} className="flex-shrink-0" />
+          ) : depth > 0 && sidebarOpen ? (
             <span className="w-1 h-1 rounded-full bg-gray-400 flex-shrink-0" />
-          )}
+          ) : null}
           {sidebarOpen && <span className="text-sm">{item.name}</span>}
         </div>
         {sidebarOpen &&
