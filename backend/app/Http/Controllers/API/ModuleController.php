@@ -33,6 +33,24 @@ class ModuleController extends Controller
         ]);
     }
 
+    public function getModuleMenus(string $slug)
+    {
+        $data = $this->moduleService->getModuleMenusBySlug($slug);
+
+        if (!$data) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Module tidak ditemukan',
+            ], 404);
+        }
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Data menu module berhasil diambil',
+            'data'    => $data,
+        ]);
+    }
+
     public function createModule(Request $request)
     {
         $log = AppLogger::getLogger('createModule');

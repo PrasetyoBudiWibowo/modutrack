@@ -5,7 +5,6 @@ import AppLayout from "@/src/components/layouts/AppLayout";
 import Toolbar from "@/src/components/data-table/toolbar";
 import { DataTable } from "@/src/components/data-table/data-table";
 import { useDistrict } from "@/src/store/wilayah/kecamatanSlice";
-import { useAuthStore } from "@/src/store/auth/authStore";
 import { districtColumns } from "@/src/components/data-table/columns/district/districtColumns";
 import FetchProgressModal from "@/src/components/ui/FetchProgressModal";
 import { Database, LoaderCircle } from "lucide-react";
@@ -25,20 +24,10 @@ export default function DistrictPage() {
     fetchProgress,
   } = useDistrict();
 
-  const { sessionUser } = useAuthStore();
   const [syncLoading, setSyncLoading] = useState(false);
   const [loadingSave, setLoadingSave] = useState(false);
 
   const handleSyncDistrict = async () => {
-    if (!sessionUser?.kd_user) {
-      Swal.fire({
-        icon: "warning",
-        title: "Session",
-        text: "User tidak ditemukan",
-      });
-      return;
-    }
-
     if (district.length === 0) {
       toast.warning("Tidak ada data untuk disync");
       return;
@@ -47,7 +36,7 @@ export default function DistrictPage() {
     try {
       setSyncLoading(true);
       setLoadingSave(true);
-      await syncDistrict(sessionUser.kd_user, district);
+      await syncDistrict(district);
       toast.success("Data kecamatan berhasil disimpan");
       await getDistrict();
     } catch (error) {

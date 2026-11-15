@@ -9,24 +9,28 @@ import api from "@/service/api";
 import { useAuthStore } from "@/src/store/auth/authStore";
 import { useModuleStore } from "@/src/store/module/createModule/moduleSlice";
 import { staticMenu } from "@/src/config/menu";
-import { iconMap, IconKey } from "@/src/config/iconMap";
+import type { MenuItem } from "@/src/config/menu";
+import type { IconKey } from "@/src/config/iconMap";
 import SidebarMenu from "./SidebarMenu";
 
 interface Props {
   children: ReactNode;
+  menuItems?: MenuItem[]; // [1] prop baru: kalau diisi, sidebar memakai ini
+  title?: string; // [1] prop baru: judul di header
 }
 
-export default function AppLayout({ children }: Props) {
+export default function AppLayout({ children, menuItems, title }: Props) {
   const { sessionUser, getSession } = useAuthStore();
   const { modules, fetchModules } = useModuleStore();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [openProfile, setOpenProfile] = useState(false);
 
+  // [2] fetch module hanya untuk mode admin
   useEffect(() => {
     getSession();
-    fetchModules();
-  }, [getSession, fetchModules]);
+    if (!menuItems) fetchModules();
+  }, [getSession, fetchModules, menuItems]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -102,32 +106,44 @@ export default function AppLayout({ children }: Props) {
           </button>
         </div>
 
-        {/* MENU */}
+        {/* [3] MENU: dua mode */}
         <nav className="p-2 space-y-1 text-sm">
-          {/* DASHBOARD */}
-          <SidebarMenu item={staticMenu[0]} sidebarOpen={sidebarOpen} />
+          {menuItems ? (
+            // MODE MODULE: menu dari database
+            menuItems.map((menu, index) => (
+              <SidebarMenu key={index} item={menu} sidebarOpen={sidebarOpen} />
+            ))
+          ) : (
+            // MODE ADMIN: isi nav yang sebelumnya
+            <>
+              <SidebarMenu item={staticMenu[0]} sidebarOpen={sidebarOpen} />
 
-          {/* DYNAMIC MODULE GROUP */}
-          {activeModules.length > 0 && (
-            <SidebarMenu
-              item={{
-                name: "Module",
-                icon: "Boxes",
-                children: activeModules.map((module) => ({
-                  name: module.nama_module,
-                  url: module.url_module ?? "#",
-                  icon: (module.icon_module ?? undefined) as
-                    | IconKey
-                    | undefined,
-                })),
-              }}
-              sidebarOpen={sidebarOpen}
-            />
+              {activeModules.length > 0 && (
+                <SidebarMenu
+                  item={{
+                    name: "Module",
+                    icon: "Boxes",
+                    children: activeModules.map((module) => ({
+                      name: module.nama_module,
+                      url: module.url_module ?? "#",
+                      icon: (module.icon_module ?? undefined) as
+                        | IconKey
+                        | undefined,
+                    })),
+                  }}
+                  sidebarOpen={sidebarOpen}
+                />
+              )}
+
+              {staticMenu.slice(1).map((menu, index) => (
+                <SidebarMenu
+                  key={index}
+                  item={menu}
+                  sidebarOpen={sidebarOpen}
+                />
+              ))}
+            </>
           )}
-
-          {staticMenu.slice(1).map((menu, index) => (
-            <SidebarMenu key={index} item={menu} sidebarOpen={sidebarOpen} />
-          ))}
         </nav>
       </aside>
 
@@ -143,7 +159,9 @@ export default function AppLayout({ children }: Props) {
             <button className="md:hidden" onClick={() => setSidebarOpen(true)}>
               <Menu />
             </button>
-            <h1 className="font-semibold text-lg">Dashboard</h1>
+
+            {/* [4] judul dinamis */}
+            <h1 className="font-semibold text-lg">{title ?? "Dashboard"}</h1>
           </div>
 
           {/* PROFILE */}

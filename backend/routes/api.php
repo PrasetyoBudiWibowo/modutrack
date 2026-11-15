@@ -41,7 +41,11 @@ Route::middleware(['auth:sanctum', 'session.active'])->group(function () {
         Route::get('/module/{kdModule}', [MenuController::class, 'getMenuByModule']);
         Route::post('/create', [MenuController::class, 'createMenu']);
         Route::patch('/{kdMenu}/toggle-status', [MenuController::class, 'toggleStatusMenu']);
+        Route::put('/{kdMenu}', [MenuController::class, 'updateMenu']);
     });
+
+    Route::get('/module-menu/{slug}', [ModuleController::class, 'getModuleMenus'])
+        ->where('slug', '[A-Za-z0-9_-]+');
 });
 
 

@@ -13,7 +13,6 @@ import { villageColumns } from "@/src/components/data-table/columns/village/vill
 import { syncVillage } from "@/service/wilayah/wilayahService";
 import FetchProgressModal from "@/src/components/ui/FetchProgressModal";
 import LoadingModal from "@/src/components/ui/LoadingModal";
-import { useAuthStore } from "@/src/store/auth/authStore";
 
 export default function VillagePage() {
   const {
@@ -26,20 +25,10 @@ export default function VillagePage() {
     fetchProgress,
   } = useVillage();
 
-  const { sessionUser } = useAuthStore();
   const [syncLoading, setSyncLoading] = useState(false);
   const [loadingSave, setLoadingSave] = useState(false);
 
   const handleSyncVillage = async () => {
-    if (!sessionUser?.kd_user) {
-      Swal.fire({
-        icon: "warning",
-        title: "Session",
-        text: "User tidak ditemukan",
-      });
-      return;
-    }
-
     if (village.length === 0) {
       toast.warning("Tidak ada data untuk disync");
       return;
@@ -48,7 +37,7 @@ export default function VillagePage() {
     try {
       setSyncLoading(true);
       setLoadingSave(true);
-      await syncVillage(sessionUser.kd_user, village);
+      await syncVillage(village);
       toast.success("Data kelurahan/desa berhasil disimpan");
       await getVillage();
     } catch (error) {

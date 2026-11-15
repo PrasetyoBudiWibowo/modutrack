@@ -139,4 +139,52 @@ class MenuController extends Controller
             ], 500);
         }
     }
+
+    public function updateMenu(Request $request, string $kdMenu)
+    {
+        $log = AppLogger::getLogger('updateMenu');
+
+        try {
+            $isParent = $request->boolean('is_parent');
+
+            $rules = [
+                'nama_menu'   => ['required', 'string', 'max:100'],
+                'icon_menu'   => ['nullable', 'string', 'max:50', 'regex:/^[A-Za-z0-9]+$/'],
+                'urutan'      => ['nullable', 'integer', 'min:0', 'max:9999'],
+                'is_parent'   => ['nullable', 'boolean'],
+                'parent_menu' => ['nullable', 'string', 'max:30'],
+            ];
+
+            if ($isParent) {
+                $rules['icon_menu'] = ['required', 'string', 'max:50', 'regex:/^[A-Za-z0-9]+$/'];
+            } else {
+                $rules['url_menu'] = ['required', 'string', 'max:100', 'regex:/^\/[A-Za-z0-9\/_-]*$/'];
+            }
+
+            $validated = $request->validate($rules, [
+                'nama_menu.required' => 'Nama menu tidak boleh kosong',
+                'icon_menu.required' => 'Icon wajib diisi untuk parent menu',
+                'icon_menu.regex'    => 'Icon hanya boleh huruf dan angka',
+                'url_menu.required'  => 'URL wajib diisi untuk menu',
+                'url_menu.regex'     => 'URL harus diawali "/" dan hanya huruf, angka, "-", "_", "/"',
+            ]);
+
+            $result = $this->menuService->updateMenu($kdMenu, $validated);
+
+            if (!$result['status']) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => $result['message'],
+                ], $result['code'] ?? 500);
+            }
+
+            return response()->json(['status' => true, 'message' => $result['message']]);
+        } catch (ValidationException $e) {
+            return response()->json(['status' => false, 'errors' => $e->errors()], 422);
+        } catch (\Throwable $th) {
+            $log->error($th->getMessage());
+
+            return response()->json(['status' => false, 'message' => 'Terjadi kesalahan pada server'], 500);
+        }
+    }
 }

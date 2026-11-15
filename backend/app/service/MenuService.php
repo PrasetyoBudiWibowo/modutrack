@@ -31,6 +31,21 @@ class MenuService
         return $prefix . $newNumber;
     }
 
+    private function getDescendantIds(string $kdMenu): array
+    {
+        $ids   = [];
+        $queue = [$kdMenu];
+
+        while (!empty($queue)) {
+            $children = MasterMenu::whereIn('parent_menu', $queue)->pluck('kd_menu')->all();
+            $children = array_values(array_diff($children, $ids));
+            $ids      = array_merge($ids, $children);
+            $queue    = $children;
+        }
+
+        return $ids;
+    }
+
     public function getAllMenu()
     {
         return MasterMenu::with(['module', 'parent'])
@@ -133,6 +148,72 @@ class MenuService
                 'status'  => false,
                 'message' => 'Terjadi kesalahan saat mengubah status menu',
             ];
+        }
+    }
+
+    public function updateMenu(string $kdMenu, array $data)
+    {
+        try {
+            DB::beginTransaction();
+
+            $menu = MasterMenu::where('kd_menu', $kdMenu)->lockForUpdate()->first();
+
+            if (!$menu) {
+                DB::rollBack();
+                return ['status' => false, 'code' => 404, 'message' => 'Menu tidak ditemukan'];
+            }
+
+            $isParent    = (bool) ($data['is_parent'] ?? false);
+            $parentId    = $data['parent_menu'] ?: null;
+            $hasChildren = MasterMenu::where('parent_menu', $kdMenu)->exists();
+
+            // Aturan 3: menu yang punya anak harus tetap menjadi grup
+            if ($hasChildren && !$isParent) {
+                DB::rollBack();
+                return [
+                    'status' => false,
+                    'code' => 422,
+                    'message' => 'Menu yang memiliki sub menu tidak bisa dijadikan menu biasa',
+                ];
+            }
+
+            // Aturan 2: parent harus satu module, grup, bukan diri sendiri/turunannya
+            if ($parentId) {
+                $parent = MasterMenu::where('kd_menu', $parentId)->first();
+
+                if (!$parent || $parent->kd_module !== $menu->kd_module) {
+                    DB::rollBack();
+                    return ['status' => false, 'code' => 422, 'message' => 'Parent menu harus dari module yang sama'];
+                }
+
+                if ($parent->url_menu) {
+                    DB::rollBack();
+                    return ['status' => false, 'code' => 422, 'message' => 'Parent menu harus berupa grup (tanpa URL)'];
+                }
+
+                if ($parentId === $kdMenu || in_array($parentId, $this->getDescendantIds($kdMenu), true)) {
+                    DB::rollBack();
+                    return ['status' => false, 'code' => 422, 'message' => 'Parent menu tidak boleh diri sendiri atau turunannya'];
+                }
+            }
+
+            // Aturan 1: kd_module tidak ikut diubah
+            $menu->update([
+                'parent_menu' => $parentId,
+                'nama_menu'   => strtoupper(strip_tags($data['nama_menu'])),
+                'icon_menu'   => $data['icon_menu'] ?? null,
+                'url_menu'    => $isParent ? null : ($data['url_menu'] ?? null),
+                'urutan'      => $data['urutan'] ?? 0,
+            ]);
+
+            DB::commit();
+
+            return ['status' => true, 'message' => 'Menu berhasil diperbarui'];
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('updateMenu failed: ' . $e->getMessage());
+
+            return ['status' => false, 'code' => 500, 'message' => 'Terjadi kesalahan saat memperbarui menu'];
         }
     }
 }

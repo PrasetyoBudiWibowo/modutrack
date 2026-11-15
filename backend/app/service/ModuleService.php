@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Models\MasterModule;
+use App\Models\MasterMenu;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
@@ -36,6 +37,28 @@ class ModuleService
         return MasterModule::orderBy('urutan', 'ASC')
             ->orderBy('nama_module', 'ASC')
             ->get();
+    }
+
+    public function getModuleMenusBySlug(string $slug)
+    {
+        $module = MasterModule::where('url_module', '/dashboard/' . $slug)
+            ->where('status_module', 'AKTIF')
+            ->first();
+
+        if (!$module) {
+            return null;
+        }
+
+        $menus = MasterMenu::where('kd_module', $module->kd_module)
+            ->where('status_akses', 'AKTIF')
+            ->orderBy('urutan', 'ASC')
+            ->orderBy('nama_menu', 'ASC')
+            ->get(['kd_menu', 'parent_menu', 'nama_menu', 'icon_menu', 'url_menu', 'urutan']);
+
+        return [
+            'module' => $module->only(['kd_module', 'nama_module', 'icon_module', 'url_module']),
+            'menus'  => $menus,
+        ];
     }
 
     public function createModule(array $data, string $userName)

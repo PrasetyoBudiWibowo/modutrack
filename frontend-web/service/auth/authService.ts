@@ -4,11 +4,9 @@ import axios from "axios";
 export type SessionUser = {
   user_name: string;
   level_user_id: number;
-  level_user: string;
-  img_user?: string;
-  format_img_user?: string;
-  status_user: string;
-  blokir: string;
+  level_user: string | null;
+  img_user: string | null;
+  format_img_user: string | null;
 };
 
 export type CheckSessionResponse = {
@@ -19,15 +17,8 @@ export type CheckSessionResponse = {
 export const checkSession = async (): Promise<CheckSessionResponse> => {
   try {
     const res = await api.get<CheckSessionResponse>("/check-session");
-
     return res.data;
-  } catch (error: unknown) {
-    if (axios.isAxiosError(error)) {
-      if (error.response?.status === 401) {
-        return { status: "unauthenticated" };
-      }
-    }
-
+  } catch {
     return { status: "unauthenticated" };
   }
 };
