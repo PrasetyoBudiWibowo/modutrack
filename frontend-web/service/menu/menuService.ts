@@ -34,9 +34,12 @@ export const getAllMenu = async () => {
 };
 
 export const createMenu = async (data: MenuInput) => {
-  const res = await api.post("/menu/create", {
-    ...data,
-  });
+  const res = await api.post("/menu/create", data);
+  return res.data;
+};
+
+export const updateMenu = async (kd_menu: string, data: MenuInput) => {
+  const res = await api.put(`/menu/${kd_menu}`, data);
   return res.data;
 };
 

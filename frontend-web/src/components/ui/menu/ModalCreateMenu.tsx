@@ -13,7 +13,6 @@ import type {
 } from "@/service/menu/menuService";
 import { useModuleStore } from "@/src/store/module/createModule/moduleSlice";
 import { useMenuStore } from "@/src/store/menu/menuSlice";
-import { useAuthStore } from "@/src/store/auth/authStore";
 import LoadingModal from "../LoadingModal";
 
 interface Props {
@@ -43,7 +42,6 @@ const flattenMenus = (
 };
 
 export default function ModalCreateMenu({ show, onClose, onSuccess }: Props) {
-  const { sessionUser } = useAuthStore();
   const { modules, fetchModules } = useModuleStore();
   const { menus } = useMenuStore();
 
@@ -119,21 +117,12 @@ export default function ModalCreateMenu({ show, onClose, onSuccess }: Props) {
   };
 
   const handleSave = async () => {
-    if (!sessionUser?.kd_user) {
-      Swal.fire({
-        icon: "warning",
-        title: "Session",
-        text: "User tidak ditemukan",
-      });
-      return;
-    }
-
     if (!validate()) return;
 
     try {
       setLoadingSave(true);
 
-      const result = await createMenu(sessionUser.kd_user, input);
+      const result = await createMenu(input);
 
       if (!result.status) {
         Swal.fire({ icon: "error", title: "Gagal", text: result.message });

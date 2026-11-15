@@ -16,6 +16,22 @@ export type ModuleInput = {
   urutan: number;
 };
 
+export type ModuleMenuItem = {
+  kd_menu: string;
+  parent_menu: string | null;
+  nama_menu: string;
+  icon_menu: string | null;
+  url_menu: string | null;
+  urutan: number;
+};
+
+export type ModuleInfo = {
+  kd_module: string;
+  nama_module: string;
+  icon_module: string | null;
+  url_module: string | null;
+};
+
 export const getAllModule = async () => {
   const res = await api.get("/module");
   return res.data;
@@ -37,5 +53,10 @@ export type ModuleInputErrors = {
 
 export const updateModule = async (kd_module: string, data: ModuleInput) => {
   const res = await api.put(`/module/${kd_module}`, data);
+  return res.data;
+};
+
+export const getModuleMenus = async (slug: string) => {
+  const res = await api.get(`/module-menu/${slug}`);
   return res.data;
 };
