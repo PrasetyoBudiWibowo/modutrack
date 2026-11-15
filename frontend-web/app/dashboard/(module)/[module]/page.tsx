@@ -11,13 +11,22 @@ const leaves = (item: MenuItem): MenuItem[] =>
   item.children ? item.children.flatMap(leaves) : [item];
 
 export default function ModuleHomePage() {
-  const { moduleInfo, menus, loading, notFound } = useModuleMenuStore();
+  const { moduleInfo, menus, loading, notFound, forbidden } =
+    useModuleMenuStore();
 
   if (loading) {
     return (
       <div className="flex items-center justify-center gap-2 py-24 text-gray-500">
         <LoaderCircle size={20} className="animate-spin" />
         <span>Memuat module...</span>
+      </div>
+    );
+  }
+
+  if (forbidden) {
+    return (
+      <div className="py-24 text-center text-gray-500">
+        Anda tidak memiliki akses ke module ini
       </div>
     );
   }

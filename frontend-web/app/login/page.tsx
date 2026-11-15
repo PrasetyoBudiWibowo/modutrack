@@ -9,6 +9,7 @@ import Swal from "sweetalert2";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { checkSession } from "@/service/auth/authService";
+import { resolvePostLoginPath } from "@/src/lib/postLogin";
 
 type DataInput = {
   user_name: string;
@@ -39,7 +40,9 @@ export default function LoginPage() {
       try {
         const res = await checkSession();
 
-        if (res.status === "authenticated") {
+        if (res.status === "authenticated" && res.user) {
+          const path = await resolvePostLoginPath(res.user.level_user_id);
+
           await Swal.fire({
             icon: "info",
             title: "Sudah Login",
@@ -47,7 +50,7 @@ export default function LoginPage() {
             confirmButtonText: "OK",
           });
 
-          router.push("/dashboard");
+          router.replace(path);
           return;
         }
       } finally {
@@ -105,15 +108,19 @@ export default function LoginPage() {
 
       localStorage.setItem("token", res.data.token);
 
+      const path = await resolvePostLoginPath(res.data.user.level_user_id);
+
       await Swal.fire({
         icon: "success",
         title: "Berhasil",
         text: res.data.message,
+        timer: 1200,
+        showConfirmButton: false,
       });
 
       setDataInput(initialState);
 
-      router.push("/dashboard");
+      router.replace(path);
     } catch (err: unknown) {
       let message = "Terjadi kesalahan";
 

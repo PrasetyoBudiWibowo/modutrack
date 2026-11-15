@@ -12,6 +12,7 @@ interface ModuleMenuState {
   menus: ModuleMenuItem[];
   loading: boolean;
   notFound: boolean;
+  forbidden: boolean;
   fetchModuleMenus: (slug: string) => Promise<void>;
 }
 
@@ -21,16 +22,23 @@ export const useModuleMenuStore = create<ModuleMenuState>((set) => ({
   menus: [],
   loading: true,
   notFound: false,
+  forbidden: false,
   fetchModuleMenus: async (slug) => {
     try {
-      set({ slug, loading: true, notFound: false });
+      set({ slug, loading: true, notFound: false, forbidden: false });
       const res = await getModuleMenus(slug);
       set({ moduleInfo: res.data.module, menus: res.data.menus ?? [] });
     } catch (error) {
-      const isNotFound =
-        axios.isAxiosError(error) && error.response?.status === 404;
-      set({ moduleInfo: null, menus: [], notFound: isNotFound });
-      if (!isNotFound) console.error(error);
+      const status = axios.isAxiosError(error)
+        ? error.response?.status
+        : undefined;
+      set({
+        moduleInfo: null,
+        menus: [],
+        notFound: status === 404,
+        forbidden: status === 403,
+      });
+      if (status !== 404 && status !== 403) console.error(error);
     } finally {
       set({ loading: false });
     }

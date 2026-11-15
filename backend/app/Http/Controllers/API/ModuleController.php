@@ -33,21 +33,21 @@ class ModuleController extends Controller
         ]);
     }
 
-    public function getModuleMenus(string $slug)
+    public function getModuleMenus(Request $request, string $slug)
     {
-        $data = $this->moduleService->getModuleMenusBySlug($slug);
+        $result = $this->moduleService->getModuleMenusBySlug($slug, $request->user());
 
-        if (!$data) {
+        if ($result['code'] !== 200) {
             return response()->json([
                 'status'  => false,
-                'message' => 'Module tidak ditemukan',
-            ], 404);
+                'message' => $result['message'],
+            ], $result['code']);
         }
 
         return response()->json([
             'status'  => true,
             'message' => 'Data menu module berhasil diambil',
-            'data'    => $data,
+            'data'    => $result['data'],
         ]);
     }
 

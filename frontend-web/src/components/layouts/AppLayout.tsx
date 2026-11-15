@@ -1,13 +1,12 @@
 "use client";
 
 import { ReactNode, useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Menu, ChevronDown, LogOut, User } from "lucide-react";
 import Swal from "sweetalert2";
 import api from "@/service/api";
 import { useAuthStore } from "@/src/store/auth/authStore";
-import { useModuleStore } from "@/src/store/module/createModule/moduleSlice";
+import { useMyModuleStore } from "@/src/store/akses/myModuleSlice";
 import { staticMenu } from "@/src/config/menu";
 import type { MenuItem } from "@/src/config/menu";
 import type { IconKey } from "@/src/config/iconMap";
@@ -15,33 +14,69 @@ import SidebarMenu from "./SidebarMenu";
 
 interface Props {
   children: ReactNode;
-  menuItems?: MenuItem[]; // [1] prop baru: kalau diisi, sidebar memakai ini
-  title?: string; // [1] prop baru: judul di header
+  menuItems?: MenuItem[]; // kalau diisi, sidebar memakai ini (mode module)
+  title?: string; // judul di header
 }
 
 export default function AppLayout({ children, menuItems, title }: Props) {
   const { sessionUser, getSession } = useAuthStore();
-  const { modules, fetchModules } = useModuleStore();
+  const { modules, isSuperAdmin, fetchMyModules } = useMyModuleStore();
   const router = useRouter();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [openProfile, setOpenProfile] = useState(false);
 
-  // [2] fetch module hanya untuk mode admin
+  // Muat sesi, dan daftar module hanya untuk mode admin
   useEffect(() => {
     getSession();
-    if (!menuItems) fetchModules();
-  }, [getSession, fetchModules, menuItems]);
+    if (!menuItems) fetchMyModules();
+  }, [getSession, fetchMyModules, menuItems]);
 
+  // Sidebar: terbuka di layar lebar sesuai pilihan terakhir, tertutup di layar kecil
   useEffect(() => {
-    const handleResize = () => {
-      setSidebarOpen(window.innerWidth >= 768);
+    const mq = window.matchMedia("(min-width: 768px)");
+
+    const readPreference = () => {
+      try {
+        return localStorage.getItem("sidebar_open") !== "false";
+      } catch {
+        return true;
+      }
     };
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => {
-      window.removeEventListener("resize", handleResize);
+
+    setSidebarOpen(mq.matches ? readPreference() : false);
+
+    const onChange = (e: MediaQueryListEvent) => {
+      setSidebarOpen(e.matches ? readPreference() : false);
     };
+
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
   }, []);
+
+  const saveSidebarPreference = (open: boolean) => {
+    try {
+      localStorage.setItem("sidebar_open", String(open));
+    } catch {
+      // abaikan jika localStorage tidak tersedia
+    }
+  };
+
+  const toggleSidebar = () => {
+    const next = !sidebarOpen;
+    setSidebarOpen(next);
+    saveSidebarPreference(next);
+  };
+
+  // Dipanggil saat grup diklik ketika sidebar sedang menyempit
+  const expandSidebar = () => {
+    setSidebarOpen(true);
+    saveSidebarPreference(true);
+  };
+
+  // Di layar kecil, tutup sidebar setelah menu diklik
+  const handleNavigate = () => {
+    if (window.innerWidth < 768) setSidebarOpen(false);
+  };
 
   const handleLogout = async () => {
     const result = await Swal.fire({
@@ -68,16 +103,12 @@ export default function AppLayout({ children, menuItems, title }: Props) {
     }
   };
 
-  const activeModules = modules
-    .filter((m) => m.status_module === "AKTIF")
-    .sort((a, b) => a.urutan - b.urutan);
-
   return (
     <div className="min-h-screen bg-gray-100">
       {/* OVERLAY MOBILE */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/30 z-30 md:hidden"
+          className="fixed inset-0 z-30 bg-black/30 md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -86,62 +117,78 @@ export default function AppLayout({ children, menuItems, title }: Props) {
       <aside
         className={`
           fixed top-0 left-0 z-40 h-screen
-          bg-white border-r border-gray-200 shadow-md
-          transition-all duration-300 overflow-y-auto
+          overflow-y-auto border-r border-gray-200 bg-white shadow-md
+          transition-all duration-300
           ${
             sidebarOpen
-              ? "translate-x-0 w-56"
-              : "-translate-x-full md:translate-x-0 md:w-20"
+              ? "w-56 translate-x-0"
+              : "-translate-x-full md:w-20 md:translate-x-0"
           }
         `}>
         {/* HEADER */}
-        <div className="sticky top-0 z-10 bg-white border-b p-4 flex items-center justify-between">
-          <h1 className="font-bold text-lg">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white p-4">
+          <h1 className="text-lg font-bold">
             {sidebarOpen ? "Modutrack" : "M"}
           </h1>
           <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1 rounded hover:bg-gray-100 transition">
+            onClick={toggleSidebar}
+            className="rounded p-1 transition hover:bg-gray-100">
             <Menu size={20} />
           </button>
         </div>
 
-        {/* [3] MENU: dua mode */}
-        <nav className="p-2 space-y-1 text-sm">
+        {/* MENU */}
+        <nav className="space-y-1 p-2 text-sm">
           {menuItems ? (
             // MODE MODULE: menu dari database
             menuItems.map((menu, index) => (
-              <SidebarMenu key={index} item={menu} sidebarOpen={sidebarOpen} />
+              <SidebarMenu
+                key={index}
+                item={menu}
+                sidebarOpen={sidebarOpen}
+                onExpand={expandSidebar}
+                onNavigate={handleNavigate}
+              />
             ))
           ) : (
-            // MODE ADMIN: isi nav yang sebelumnya
+            // MODE ADMIN
             <>
-              <SidebarMenu item={staticMenu[0]} sidebarOpen={sidebarOpen} />
+              <SidebarMenu
+                item={staticMenu[0]}
+                sidebarOpen={sidebarOpen}
+                onExpand={expandSidebar}
+                onNavigate={handleNavigate}
+              />
 
-              {activeModules.length > 0 && (
+              {modules.length > 0 && (
                 <SidebarMenu
                   item={{
                     name: "Module",
                     icon: "Boxes",
-                    children: activeModules.map((module) => ({
-                      name: module.nama_module,
-                      url: module.url_module ?? "#",
-                      icon: (module.icon_module ?? undefined) as
-                        | IconKey
-                        | undefined,
+                    children: modules.map((m) => ({
+                      name: m.nama_module,
+                      url: m.url_module ?? "#",
+                      icon: (m.icon_module ?? undefined) as IconKey | undefined,
                     })),
                   }}
                   sidebarOpen={sidebarOpen}
+                  onExpand={expandSidebar}
+                  onNavigate={handleNavigate}
                 />
               )}
 
-              {staticMenu.slice(1).map((menu, index) => (
-                <SidebarMenu
-                  key={index}
-                  item={menu}
-                  sidebarOpen={sidebarOpen}
-                />
-              ))}
+              {isSuperAdmin &&
+                staticMenu
+                  .slice(1)
+                  .map((menu, index) => (
+                    <SidebarMenu
+                      key={index}
+                      item={menu}
+                      sidebarOpen={sidebarOpen}
+                      onExpand={expandSidebar}
+                      onNavigate={handleNavigate}
+                    />
+                  ))}
             </>
           )}
         </nav>
@@ -154,37 +201,36 @@ export default function AppLayout({ children, menuItems, title }: Props) {
           ${sidebarOpen ? "md:ml-56" : "md:ml-20"}
         `}>
         {/* NAVBAR */}
-        <header className="sticky top-0 z-30 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
           <div className="flex items-center gap-3">
             <button className="md:hidden" onClick={() => setSidebarOpen(true)}>
               <Menu />
             </button>
 
-            {/* [4] judul dinamis */}
-            <h1 className="font-semibold text-lg">{title ?? "Dashboard"}</h1>
+            <h1 className="text-lg font-semibold">{title ?? "Dashboard"}</h1>
           </div>
 
           {/* PROFILE */}
           <div className="relative">
             <button
               onClick={() => setOpenProfile(!openProfile)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition">
+              className="flex items-center gap-2 rounded-lg px-3 py-2 transition hover:bg-gray-100">
               <User size={18} />
               <span className="text-sm">{sessionUser?.user_name}</span>
               <ChevronDown size={16} />
             </button>
 
             {openProfile && (
-              <div className="absolute right-0 mt-2 w-40 bg-white border rounded-lg shadow-lg overflow-hidden z-50">
+              <div className="absolute right-0 z-50 mt-2 w-40 overflow-hidden rounded-lg border bg-white shadow-lg">
                 <button
                   onClick={() => router.push("/profile")}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-100 transition">
+                  className="w-full px-4 py-2 text-left transition hover:bg-gray-100">
                   Profile
                 </button>
 
                 <button
                   onClick={handleLogout}
-                  className="w-full text-left px-4 py-2 text-red-500 hover:bg-gray-100 flex items-center gap-2 transition">
+                  className="flex w-full items-center gap-2 px-4 py-2 text-left text-red-500 transition hover:bg-gray-100">
                   <LogOut size={16} />
                   Logout
                 </button>
@@ -194,7 +240,7 @@ export default function AppLayout({ children, menuItems, title }: Props) {
         </header>
 
         {/* MAIN */}
-        <main className="min-h-screen p-6 space-y-6">{children}</main>
+        <main className="min-h-screen space-y-6 p-6">{children}</main>
       </div>
     </div>
   );

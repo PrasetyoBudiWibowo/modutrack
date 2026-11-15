@@ -18,16 +18,16 @@ export const staticMenu: MenuItem[] = [
     icon: "Settings",
     children: [
       {
-        name: "User",
-        url: "/dashboard/users",
-      },
-      {
         name: "Module",
         url: "/dashboard/modules",
       },
       {
         name: "Menu",
         url: "/dashboard/menus",
+      },
+      {
+        name: "Hak Akses",
+        url: "/dashboard/akses",
       },
     ],
   },

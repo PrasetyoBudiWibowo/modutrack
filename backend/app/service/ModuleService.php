@@ -4,6 +4,8 @@ namespace App\Service;
 
 use App\Models\MasterModule;
 use App\Models\MasterMenu;
+use App\Models\MasterHakAksesModule;
+use App\Models\MasterHakAksesMenu;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
@@ -39,25 +41,87 @@ class ModuleService
             ->get();
     }
 
-    public function getModuleMenusBySlug(string $slug)
+    public function getModuleMenusBySlug(string $slug, $user): array
     {
         $module = MasterModule::where('url_module', '/dashboard/' . $slug)
             ->where('status_module', 'AKTIF')
             ->first();
 
         if (!$module) {
-            return null;
+            return ['code' => 404, 'message' => 'Module tidak ditemukan'];
         }
 
-        $menus = MasterMenu::where('kd_module', $module->kd_module)
+        $isSuper = (int) $user->level_user_id === 1;
+
+        if (!$isSuper) {
+            $punyaAkses = MasterHakAksesModule::where('kd_user', $user->kd_user)
+                ->where('kd_module', $module->kd_module)
+                ->where('status_akses', 'YA')
+                ->exists();
+
+            if (!$punyaAkses) {
+                return ['code' => 403, 'message' => 'Anda tidak memiliki akses ke module ini'];
+            }
+        }
+
+        $all = MasterMenu::where('kd_module', $module->kd_module)
             ->where('status_akses', 'AKTIF')
-            ->orderBy('urutan', 'ASC')
-            ->orderBy('nama_menu', 'ASC')
-            ->get(['kd_menu', 'parent_menu', 'nama_menu', 'icon_menu', 'url_menu', 'urutan']);
+            ->orderBy('urutan')
+            ->orderBy('nama_menu')
+            ->get(['kd_menu', 'parent_menu', 'nama_menu', 'icon_menu', 'url_menu', 'urutan'])
+            ->keyBy('kd_menu');
+
+        $full       = ['lihat' => true, 'insert' => true, 'edit' => true, 'hapus' => true, 'export' => true];
+        $izinMap    = [];
+        $visibleIds = [];
+
+        if ($isSuper) {
+            foreach ($all->keys() as $kd) {
+                $visibleIds[$kd] = true;
+                $izinMap[$kd]    = $full;
+            }
+        } else {
+            $perms = MasterHakAksesMenu::where('kd_user', $user->kd_user)
+                ->where('status_akses', 'YA')
+                ->where('bisa_lihat', 'YA')
+                ->whereIn('kd_menu', $all->keys())
+                ->get()
+                ->keyBy('kd_menu');
+
+            foreach ($perms as $kd => $p) {
+                $visibleIds[$kd] = true;
+                $izinMap[$kd] = [
+                    'lihat'  => true,
+                    'insert' => $p->bisa_insert === 'YA',
+                    'edit'   => $p->bisa_edit === 'YA',
+                    'hapus'  => $p->bisa_hapus === 'YA',
+                    'export' => $p->bisa_export === 'YA',
+                ];
+
+                // Grup induk ikut tampil
+                $parent = $all[$kd]->parent_menu;
+                while ($parent && $all->has($parent) && !isset($visibleIds[$parent])) {
+                    $visibleIds[$parent] = true;
+                    $parent = $all[$parent]->parent_menu;
+                }
+            }
+        }
+
+        $menus = $all
+            ->filter(fn($m, $kd) => isset($visibleIds[$kd]))
+            ->map(function ($m, $kd) use ($izinMap) {
+                $row         = $m->toArray();
+                $row['izin'] = $izinMap[$kd] ?? null; // grup tidak punya izin
+                return $row;
+            })
+            ->values();
 
         return [
-            'module' => $module->only(['kd_module', 'nama_module', 'icon_module', 'url_module']),
-            'menus'  => $menus,
+            'code' => 200,
+            'data' => [
+                'module' => $module->only(['kd_module', 'nama_module', 'icon_module', 'url_module']),
+                'menus'  => $menus,
+            ],
         ];
     }
 

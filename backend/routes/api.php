@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\API\AksesController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\UserController;
@@ -20,6 +21,10 @@ Route::middleware(['auth:sanctum', 'session.active'])->group(function () {
     Route::prefix('users')->middleware('auth:sanctum')->group(function () {
         Route::get('/all-user', [UserController::class, 'getAllUser']);
     });
+
+    Route::get('/me/modules', [AksesController::class, 'myModules']);
+    Route::get('/module-menu/{slug}', [ModuleController::class, 'getModuleMenus'])
+        ->where('slug', '[A-Za-z0-9_-]+');
 
     Route::middleware('level:1')->group(function () {
         Route::post('/provinsi/sync', [WilayahController::class, 'syncProvinsi']);
@@ -44,8 +49,11 @@ Route::middleware(['auth:sanctum', 'session.active'])->group(function () {
         Route::put('/{kdMenu}', [MenuController::class, 'updateMenu']);
     });
 
-    Route::get('/module-menu/{slug}', [ModuleController::class, 'getModuleMenus'])
-        ->where('slug', '[A-Za-z0-9_-]+');
+    Route::prefix('akses')->middleware('level:1')->group(function () {
+        Route::get('/users', [AksesController::class, 'listUsers']);
+        Route::get('/user', [AksesController::class, 'getUserAkses']);
+        Route::put('/user', [AksesController::class, 'saveUserAkses']);
+    });
 });
 
 
