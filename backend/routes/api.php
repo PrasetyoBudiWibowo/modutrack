@@ -7,6 +7,7 @@ use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\WilayahController;
 use App\Http\Controllers\API\ModuleController;
 use App\Http\Controllers\API\MenuController;
+use App\Http\Controllers\API\UserManagementController;
 
 // Route::get('/tes', function () {
 //     return 'API works';
@@ -53,6 +54,17 @@ Route::middleware(['auth:sanctum', 'session.active'])->group(function () {
         Route::get('/users', [AksesController::class, 'listUsers']);
         Route::get('/user', [AksesController::class, 'getUserAkses']);
         Route::put('/user', [AksesController::class, 'saveUserAkses']);
+    });
+
+    Route::prefix('user-management')->middleware('level:1')->group(function () {
+        Route::get('/users', [UserManagementController::class, 'listUsers']);
+        Route::get('/riwayat', [UserManagementController::class, 'riwayat']);
+        Route::post('/nonaktifkan', [UserManagementController::class, 'nonaktifkan']);
+        Route::post('/aktifkan', [UserManagementController::class, 'aktifkan']);
+        Route::post('/blokir', [UserManagementController::class, 'blokir']);
+        Route::post('/cabut-blokir', [UserManagementController::class, 'cabutBlokir']);
+        Route::get('/levels', [UserManagementController::class, 'levels']);
+        Route::post('/update', [UserManagementController::class, 'ubah']);
     });
 });
 

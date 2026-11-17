@@ -114,7 +114,7 @@ export default function LoginPage() {
         icon: "success",
         title: "Berhasil",
         text: res.data.message,
-        timer: 1200,
+        timer: 500,
         showConfirmButton: false,
       });
 

@@ -5,6 +5,7 @@ namespace App\Service;
 use App\Models\tbl_user;
 use App\Models\tbl_level_user;
 use App\Models\tbl_history_login;
+use App\Service\UserManagementService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -16,8 +17,12 @@ use App\Helper\AppLogger;
 use App\Helper\GeoDetector;
 use App\Helper\DeviceHelper;
 
+
 class AuthService
 {
+
+    public function __construct(private UserManagementService $userManagement) {}
+
     private function generateUserKd()
     {
         $currentMonth = Carbon::now()->format('Ym');
@@ -97,7 +102,7 @@ class AuthService
             return $historyLogin;
         } catch (\Throwable $th) {
             DB::rollBack();
-            return response()->json(['status' => 'error', 'message' => $th->getMessage()], 500);
+            $log->error('HISTORY LOGIN GAGAL: ' . $th->getMessage());
             throw $th;
         }
     }
@@ -159,68 +164,58 @@ class AuthService
     {
         $log = AppLogger::getLogger('LOGIN');
 
-        $user = tbl_user::where('user_name', $data['user_name'])
-            ->where('blokir', 'TIDAK')
-            ->where('status_user', 'ACTIVE')
-            ->first();
+        $user = tbl_user::where('user_name', $data['user_name'])->first();
 
-        if (!$user) {
-            $log->error("USER TIDAK DITEMUKAN", [
-                'user_name' => $data['user_name']
-            ]);
+        if (!$user || !Hash::check($data['password'], $user->password)) {
+            $log->warning('LOGIN GAGAL', ['user_name' => $data['user_name']]);
 
             return [
-                'status' => false,
-                'message' => 'User tidak ditemukan'
+                'status'  => false,
+                'code'    => 401,
+                'message' => 'User name atau password salah',
             ];
         }
 
-        if (!Hash::check($data['password'], $user->password)) {
+        // Status baru diperiksa SETELAH password benar
+        $this->userManagement->syncExpired($user->kd_user);
+        $user->refresh();
+
+        if ($user->status_user !== 'ACTIVE') {
             return [
-                'status' => false,
-                'message' => 'Password salah'
+                'status'  => false,
+                'code'    => 403,
+                'message' => 'Akun Anda dinonaktifkan. Hubungi administrator.',
+            ];
+        }
+
+        if ($user->blokir === 'YA') {
+            return [
+                'status'  => false,
+                'code'    => 403,
+                'message' => $this->userManagement->blockMessage($user->kd_user),
             ];
         }
 
         $historyLogin = $this->buatHistoryLoginUser([
-            'kd_user' => $user->kd_user,
-            'user_name' => $user->user_name
+            'kd_user'   => $user->kd_user,
+            'user_name' => $user->user_name,
         ]);
 
-        $log->info("=== BERHASIL SIMPAN DATA HISTORY LOGIN 2 ===");
-
-        if (!$historyLogin) {
-            $log->error("Gagal membuat history login");
-
-            return [
-                'status' => false,
-                'message' => 'Gagal menyimpan history login'
-            ];
-        }
-
-        $log->info("=== BERHASIL SIMPAN DATA HISTORY LOGIN 3 ===");
-
         $user->update([
-            'tgl_login_terakhir' => $historyLogin->tgl_login,
+            'tgl_login_terakhir'   => $historyLogin->tgl_login,
             'waktu_login_terakhir' => $historyLogin->waktu_login,
         ]);
 
-        $log->info("=== UPDATE TANGGAL LOGIN ===");
-
         return [
-            'status' => true,
+            'status'     => true,
             'user_model' => $user,
-            'data' => [
-                'user_name' => $user->user_name,
-                'level_user_id' => $user->level_user_id,
-                'img_user' => $user->img_user,
+            'data'       => [
+                'user_name'       => $user->user_name,
+                'level_user_id'   => $user->level_user_id,
+                'img_user'        => $user->img_user,
                 'format_img_user' => $user->format_img_user,
-                'level_user' => [
-                    [
-                        'level_user' => $user->level->level_user,
-                    ]
-                ],
-            ]
+                'level_user'      => [['level_user' => $user->level->level_user]],
+            ],
         ];
     }
 

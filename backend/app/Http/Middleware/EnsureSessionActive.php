@@ -12,6 +12,15 @@ class EnsureSessionActive
     {
         $user = $request->user();
 
+        if ($user->status_user !== 'ACTIVE' || $user->blokir === 'YA') {
+            $user->tokens()->delete();
+
+            return response()->json([
+                'status'  => false,
+                'message' => 'Akun Anda dinonaktifkan atau diblokir',
+            ], 401);
+        }
+
         if (!$user) {
             return response()->json(['status' => false, 'message' => 'Unauthenticated'], 401);
         }

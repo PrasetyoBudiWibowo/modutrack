@@ -26,6 +26,10 @@ export const staticMenu: MenuItem[] = [
         url: "/dashboard/menus",
       },
       {
+        name: "User",
+        url: "/dashboard/users",
+      },
+      {
         name: "Hak Akses",
         url: "/dashboard/akses",
       },

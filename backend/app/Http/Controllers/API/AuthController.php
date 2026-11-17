@@ -94,8 +94,8 @@ class AuthController extends Controller
 
                 return response()->json([
                     'status'  => 'fail',
-                    'message' => 'User name atau password salah',
-                ], 401);
+                    'message' => $result['message'],
+                ], $result['code'] ?? 401);
             }
 
             $userModel = $result['user_model'];
