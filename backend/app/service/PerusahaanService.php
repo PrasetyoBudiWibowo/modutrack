@@ -42,7 +42,6 @@ class PerusahaanService
 
         $jumlahAnak = $rows->whereNotNull('kd_induk')->groupBy('kd_induk')->map->count();
 
-        // Badan hukum efektif: unit itu sendiri atau induk terdekat yang berbadan hukum
         $efektif = function ($p) use ($byId) {
             for ($cur = $p; $cur; $cur = $cur->kd_induk ? $byId->get($cur->kd_induk) : null) {
                 if ($cur->badan_hukum_sendiri === 'YA') {
