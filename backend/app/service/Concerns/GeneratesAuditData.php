@@ -33,6 +33,17 @@ trait GeneratesAuditData
         ];
     }
 
+    protected function auditFieldsBaru(string $userName): array
+    {
+        $now = now();
+
+        return [
+            'tgl_input'   => $now->toDateString(),
+            'waktu_input' => $now->format('H:i:s'),
+            'user_input'  => $userName,
+        ];
+    }
+
     protected function deviceFields(): array
     {
         $info = DeviceHelper::detectDevice($_SERVER['HTTP_USER_AGENT'] ?? null);

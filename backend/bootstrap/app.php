@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'token.timeout'  => \App\Http\Middleware\CheckTokenTimeout::class,
             'session.active' => \App\Http\Middleware\EnsureSessionActive::class,
             'level'          => \App\Http\Middleware\EnsureLevel::class,
+            'izin'           => \App\Http\Middleware\EnsureMenuPermission::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

@@ -8,6 +8,8 @@ use App\Http\Controllers\API\WilayahController;
 use App\Http\Controllers\API\ModuleController;
 use App\Http\Controllers\API\MenuController;
 use App\Http\Controllers\API\UserManagementController;
+use App\Http\Controllers\API\PerusahaanController;
+use App\Http\Controllers\API\TipePerusahaanController;
 
 // Route::get('/tes', function () {
 //     return 'API works';
@@ -65,6 +67,33 @@ Route::middleware(['auth:sanctum', 'session.active'])->group(function () {
         Route::post('/cabut-blokir', [UserManagementController::class, 'cabutBlokir']);
         Route::get('/levels', [UserManagementController::class, 'levels']);
         Route::post('/update', [UserManagementController::class, 'ubah']);
+    });
+
+    Route::prefix('tipe-perusahaan')->group(function () {
+        Route::get('/', [TipePerusahaanController::class, 'index'])->middleware('izin:tipe-perusahaan,lihat');
+        Route::post('/', [TipePerusahaanController::class, 'store'])->middleware('izin:tipe-perusahaan,insert');
+        Route::put('/{kd}', [TipePerusahaanController::class, 'update'])->middleware('izin:tipe-perusahaan,edit')
+            ->where('kd', '[A-Za-z0-9-]+');
+        Route::patch('/{kd}/toggle-status', [TipePerusahaanController::class, 'toggleStatus'])->middleware('izin:tipe-perusahaan,hapus')
+            ->where('kd', '[A-Za-z0-9-]+');
+    });
+
+    Route::prefix('perusahaan')->group(function () {
+        Route::get('/', [PerusahaanController::class, 'index'])->middleware('izin:perusahaan,lihat');
+        Route::get('/opsi/tipe', [PerusahaanController::class, 'opsiTipe'])->middleware('izin:perusahaan,lihat');
+        Route::get('/opsi/wilayah', [PerusahaanController::class, 'opsiWilayah'])->middleware('izin:perusahaan,lihat');
+        Route::get('/{kd}/riwayat', [PerusahaanController::class, 'riwayat'])->middleware('izin:perusahaan,lihat')
+            ->where('kd', '[A-Za-z0-9-]+');
+
+        Route::post('/', [PerusahaanController::class, 'store'])->middleware('izin:perusahaan,insert');
+        Route::put('/{kd}', [PerusahaanController::class, 'update'])->middleware('izin:perusahaan,edit')
+            ->where('kd', '[A-Za-z0-9-]+');
+        Route::post('/{kd}/pindah', [PerusahaanController::class, 'pindah'])->middleware('izin:perusahaan,edit')
+            ->where('kd', '[A-Za-z0-9-]+');
+        Route::post('/{kd}/nonaktifkan', [PerusahaanController::class, 'nonaktifkan'])->middleware('izin:perusahaan,hapus')
+            ->where('kd', '[A-Za-z0-9-]+');
+        Route::post('/{kd}/aktifkan', [PerusahaanController::class, 'aktifkan'])->middleware('izin:perusahaan,hapus')
+            ->where('kd', '[A-Za-z0-9-]+');
     });
 });
 
