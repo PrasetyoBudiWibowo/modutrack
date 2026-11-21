@@ -37,12 +37,13 @@ class PerusahaanController extends Controller
         ];
 
         if ($baru) {
-            $rules['kd_tipe_perusahaan'] = ['required', 'string', 'exists:master_tipe_perusahaan,kd_tipe_perusahaan'];
-            $rules['kd_induk']           = ['nullable', 'string', 'exists:master_perusahaan,kd_perusahaan'];
+            $rules['kd_tipe_perusahaan']    = ['required', 'string', 'exists:master_tipe_perusahaan,kd_tipe_perusahaan'];
+            $rules['kd_induk']              = ['nullable', 'string', 'exists:master_perusahaan,kd_perusahaan'];
         } else {
-            $rules['konfirmasi_hapus_legal'] = ['nullable', 'boolean'];
-            $rules['tgl_berlaku']            = ['nullable', 'date'];
-            $rules['alasan']                 = ['nullable', 'string', 'max:500'];
+            $rules['konfirmasi_hapus_legal']    = ['nullable', 'boolean'];
+            $rules['tgl_berlaku']               = ['nullable', 'date'];
+            $rules['alasan']                    = ['nullable', 'string', 'max:500'];
+            $rules['kd_tipe_perusahaan']        = ['nullable', 'string', 'exists:master_tipe_perusahaan,kd_tipe_perusahaan'];
         }
 
         return $rules;
@@ -176,6 +177,17 @@ class PerusahaanController extends Controller
             ],
             [],
             fn($v, $actor) => $this->service->ubahStatus($kd, true, $v, $actor)
+        );
+    }
+
+    public function hapus(Request $request, string $kd)
+    {
+        return $this->execute(
+            $request,
+            'hapusPerusahaan',
+            ['konfirmasi_nama' => ['required', 'string', 'max:150']],
+            ['konfirmasi_nama.required' => 'Ketik nama untuk konfirmasi'],
+            fn($v, $actor) => $this->service->hapus($kd, $v['konfirmasi_nama'], $actor)
         );
     }
 }

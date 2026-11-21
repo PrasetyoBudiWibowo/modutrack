@@ -10,6 +10,7 @@ use App\Service\Concerns\GeneratesAuditData;
 use App\Service\Concerns\RunsInTransaction;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class PerusahaanService
 {
@@ -30,323 +31,10 @@ class PerusahaanService
         'master_perusahaan_kode_cabang_unique' => 'Kode cabang sudah dipakai',
     ];
 
-
-    public function daftar()
+    private function dipakaiData(array $ids): ?string
     {
-        $rows = MasterPerusahaan::with('tipe:kd_tipe_perusahaan,nama')->orderBy('nama')->get();
-        $byId = $rows->keyBy('kd_perusahaan');
-
-        $namaKota = DB::table(self::WILAYAH['kota']['table'])
-            ->whereIn(self::WILAYAH['kota']['key'], $rows->pluck('kd_kabupaten_kota')->filter()->unique()->all())
-            ->pluck(self::WILAYAH['kota']['nama'], self::WILAYAH['kota']['key']);
-
-        $jumlahAnak = $rows->whereNotNull('kd_induk')->groupBy('kd_induk')->map->count();
-
-        $efektif = function ($p) use ($byId) {
-            for ($cur = $p; $cur; $cur = $cur->kd_induk ? $byId->get($cur->kd_induk) : null) {
-                if ($cur->badan_hukum_sendiri === 'YA') {
-                    return ['kd_perusahaan' => $cur->kd_perusahaan, 'nama_badan_hukum' => $cur->nama_badan_hukum];
-                }
-            }
-
-            return null;
-        };
-
-        return $rows->map(fn($p) => $p->only([
-            'kd_perusahaan',
-            'kode_cabang',
-            'nama',
-            'singkatan',
-            'kd_tipe_perusahaan',
-            'kd_induk',
-            'badan_hukum_sendiri',
-            'nama_badan_hukum',
-            'npwp',
-            'no_akta',
-            'kd_provinsi',
-            'kd_kabupaten_kota',
-            'kd_kecamatan',
-            'mode_desa',
-            'kd_village',
-            'nama_desa_manual',
-            'alamat_rinci',
-            'kode_pos',
-            'telepon',
-            'email',
-            'tgl_berdiri',
-            'tgl_tutup',
-            'status',
-        ]) + [
-            'nama_tipe'        => $p->tipe?->nama,
-            'nama_kota'        => $namaKota[$p->kd_kabupaten_kota] ?? null,
-            'jumlah_anak'      => $jumlahAnak[$p->kd_perusahaan] ?? 0,
-            'badan_hukum_efektif' => $efektif($p),
-        ])->values();
+        return null;
     }
-
-    public function opsiTipe()
-    {
-        return MasterTipePerusahaan::where('status', 'AKTIF')
-            ->orderBy('nama')
-            ->get(['kd_tipe_perusahaan', 'nama', 'boleh_badan_hukum']);
-    }
-
-    public function opsiWilayah(string $level, ?string $induk)
-    {
-        $cfg = self::WILAYAH[$level];
-        $q   = DB::table($cfg['table']);
-
-        if ($cfg['parent']) {
-            $q->where($cfg['parent'], $induk);
-        }
-
-        return $q->orderBy($cfg['nama'])->get([$cfg['key'] . ' as id', $cfg['nama'] . ' as nama']);
-    }
-
-    public function riwayat(string $kd): ?array
-    {
-        if (!MasterPerusahaan::where('kd_perusahaan', $kd)->exists()) {
-            return null;
-        }
-
-        return RiwayatPerusahaan::with('jenis:kd_jenis_riwayat,kode,nama')
-            ->where('kd_perusahaan', $kd)
-            ->orderByDesc('tgl_berlaku')
-            ->orderByDesc('kd_riwayat_perusahaan')
-            ->limit(100)
-            ->get()
-            ->map(fn($r) => [
-                'jenis_kode'  => $r->jenis?->kode,
-                'jenis_nama'  => $r->jenis?->nama,
-                'nilai_lama'  => $r->nilai_lama,
-                'nilai_baru'  => $r->nilai_baru,
-                'tgl_berlaku' => $r->tgl_berlaku,
-                'alasan'      => $r->alasan,
-                'dicatat_oleh' => $r->user_input,
-                'dicatat_pada' => $r->tgl_input . ' ' . $r->waktu_input,
-            ])
-            ->all();
-    }
-
-    /* --------------------------------------------------------------- tulis */
-
-    public function buat(array $d, $actor): array
-    {
-        return $this->transaksi('buatPerusahaan', function () use ($d, $actor) {
-            $d = $this->bersihkan($d);
-
-            $tipe = MasterTipePerusahaan::find($d['kd_tipe_perusahaan']);
-            $this->pastikan($tipe && $tipe->status === 'AKTIF', 'Tipe tidak ditemukan atau tidak aktif');
-
-            $akar    = MasterPerusahaan::whereNull('kd_induk')->first();
-            $kdInduk = $d['kd_induk'] ?? null;
-
-            if (!$akar) {
-                $this->pastikan($this->superAdmin($actor), 'Hanya super admin yang dapat membuat grup utama', 403);
-                $this->pastikan(!$kdInduk, 'Grup utama tidak memiliki induk');
-                $jadiAkar = true;
-            } else {
-                $this->pastikan($kdInduk, 'Induk wajib dipilih karena grup utama sudah ada');
-                $induk = MasterPerusahaan::find($kdInduk);
-                $this->pastikan($induk && $induk->status === 'AKTIF', 'Induk tidak ditemukan atau tidak aktif');
-                $jadiAkar = false;
-            }
-
-            $this->pastikan(
-                !MasterPerusahaan::whereRaw('LOWER(kode_cabang) = ?', [strtolower($d['kode_cabang'])])->exists(),
-                'Kode cabang sudah dipakai',
-            );
-
-            $kd = $this->nextCode(MasterPerusahaan::class, 'kd_perusahaan', 'PRS');
-
-            $data = [
-                'kd_perusahaan'      => $kd,
-                'kode_cabang'        => $d['kode_cabang'],
-                'nama'               => $d['nama'],
-                'singkatan'          => $d['singkatan'] ?? null,
-                'kd_tipe_perusahaan' => $tipe->kd_tipe_perusahaan,
-                'kd_induk'           => $kdInduk,
-            ] + $this->olahLegal($d, $tipe, $jadiAkar) + $this->olahAlamat($d) + [
-                'telepon'     => $d['telepon'] ?? null,
-                'email'       => $d['email'] ?? null,
-                'tgl_berdiri' => $d['tgl_berdiri'] ?? null,
-                'status'      => 'AKTIF',
-            ] + $this->auditFieldsBaru($actor->user_name) + $this->deviceFields();
-
-            MasterPerusahaan::create($data);
-
-            $this->catat($kd, 'DIBUAT', null, $this->snapshot($data), now()->toDateString(), null, $actor);
-
-            return [
-                'message' => $jadiAkar ? 'Grup utama berhasil dibuat' : 'Cabang berhasil dibuat',
-                'data'    => ['kd_perusahaan' => $kd],
-            ];
-        }, self::PESAN_UNIK);
-    }
-
-    /** Tipe dan induk tidak diubah di sini: tipe dikunci, induk lewat pindah() */
-    public function ubah(string $kd, array $d, $actor): array
-    {
-        return $this->transaksi('ubahPerusahaan', function () use ($kd, $d, $actor) {
-            $p = MasterPerusahaan::where('kd_perusahaan', $kd)->lockForUpdate()->first();
-            $this->pastikan($p, 'Perusahaan tidak ditemukan', 404);
-
-            $akar = $p->kd_induk === null;
-            $this->pastikan(!$akar || $this->superAdmin($actor), 'Hanya super admin yang dapat mengubah grup utama', 403);
-
-            $d    = $this->bersihkan($d);
-            $tipe = MasterTipePerusahaan::find($p->kd_tipe_perusahaan);
-
-            $this->pastikan(
-                !MasterPerusahaan::whereRaw('LOWER(kode_cabang) = ?', [strtolower($d['kode_cabang'])])
-                    ->where('kd_perusahaan', '!=', $kd)->exists(),
-                'Kode cabang sudah dipakai',
-            );
-
-            $legal = $this->olahLegal($d, $tipe, $akar);
-
-            if ($p->badan_hukum_sendiri === 'YA' && $legal['badan_hukum_sendiri'] === 'TIDAK') {
-                $this->pastikan(
-                    !empty($d['konfirmasi_hapus_legal']),
-                    'Mengubah menjadi ikut pusat akan menghapus data badan hukum. Konfirmasi diperlukan',
-                );
-            }
-
-            $alamat     = $this->olahAlamat($d);
-            $tglBerdiri = $d['tgl_berdiri'] ?? null;
-
-            $this->pastikan(
-                !$tglBerdiri || !$p->tgl_tutup || $tglBerdiri <= $p->tgl_tutup,
-                'Tanggal berdiri tidak boleh setelah tanggal tutup',
-            );
-
-            $kolomRiwayat = array_merge(['nama', 'kode_cabang'], self::FIELD_LEGAL, self::FIELD_ALAMAT);
-            $lama = $p->only($kolomRiwayat);
-            $baru = ['nama' => $d['nama'], 'kode_cabang' => $d['kode_cabang']] + $legal + $alamat;
-
-            $umumBaru = [
-                'singkatan'   => $d['singkatan'] ?? null,
-                'telepon'     => $d['telepon'] ?? null,
-                'email'       => $d['email'] ?? null,
-                'tgl_berdiri' => $tglBerdiri,
-            ];
-
-            $perubahan = array_filter([
-                'GANTI_NAMA'       => $this->selisih($lama, $baru, ['nama']),
-                'GANTI_KODE'       => $this->selisih($lama, $baru, ['kode_cabang']),
-                'UBAH_ALAMAT'      => $this->selisih($lama, $baru, self::FIELD_ALAMAT),
-                'UBAH_BADAN_HUKUM' => $this->selisih($lama, $baru, self::FIELD_LEGAL),
-            ]);
-
-            $adaUmum = $this->selisih($p->only(array_keys($umumBaru)), $umumBaru, array_keys($umumBaru)) !== null;
-
-            $this->pastikan($perubahan || $adaUmum, 'Tidak ada perubahan yang disimpan');
-
-            $p->update($baru + $umumBaru);
-
-            $tgl = $d['tgl_berlaku'] ?? now()->toDateString();
-
-            foreach ($perubahan as $kode => [$a, $b]) {
-                $this->catat($kd, $kode, $a, $b, $tgl, $d['alasan'] ?? null, $actor);
-            }
-
-            return ['message' => 'Data berhasil diperbarui'];
-        }, self::PESAN_UNIK);
-    }
-
-    public function pindah(string $kd, array $d, $actor): array
-    {
-        return $this->transaksi('pindahPerusahaan', function () use ($kd, $d, $actor) {
-            $d = $this->bersihkan($d);
-
-            $p = MasterPerusahaan::where('kd_perusahaan', $kd)->lockForUpdate()->first();
-            $this->pastikan($p, 'Perusahaan tidak ditemukan', 404);
-            $this->pastikan($p->kd_induk !== null, 'Grup utama tidak dapat dipindahkan');
-
-            $indukBaru = MasterPerusahaan::find($d['kd_induk']);
-            $this->pastikan($indukBaru && $indukBaru->status === 'AKTIF', 'Induk baru tidak ditemukan atau tidak aktif');
-            $this->pastikan($indukBaru->kd_perusahaan !== $p->kd_induk, 'Induk baru sama dengan induk saat ini');
-            $this->pastikan(
-                $indukBaru->kd_perusahaan !== $kd && !in_array($indukBaru->kd_perusahaan, $this->turunanIds($kd), true),
-                'Tidak boleh dipindahkan ke bawah dirinya sendiri atau turunannya',
-            );
-
-            $indukLama = MasterPerusahaan::find($p->kd_induk);
-
-            $p->update(['kd_induk' => $indukBaru->kd_perusahaan]);
-
-            $this->catat(
-                $kd,
-                'PINDAH_INDUK',
-                ['kd_induk' => $indukLama?->kd_perusahaan, 'nama_induk' => $indukLama?->nama],
-                ['kd_induk' => $indukBaru->kd_perusahaan, 'nama_induk' => $indukBaru->nama],
-                $d['tgl_berlaku'],
-                $d['alasan'] ?? null,
-                $actor,
-            );
-
-            return ['message' => 'Perusahaan berhasil dipindahkan'];
-        });
-    }
-
-    public function ubahStatus(string $kd, bool $aktif, array $d, $actor): array
-    {
-        return $this->transaksi('ubahStatusPerusahaan', function () use ($kd, $aktif, $d, $actor) {
-            $d = $this->bersihkan($d);
-
-            $p = MasterPerusahaan::where('kd_perusahaan', $kd)->lockForUpdate()->first();
-            $this->pastikan($p, 'Perusahaan tidak ditemukan', 404);
-            $this->pastikan($p->kd_induk !== null || $this->superAdmin($actor), 'Hanya super admin yang dapat mengubah status grup utama', 403);
-
-            $tgl = $d['tgl_berlaku'];
-
-            if (!$aktif) {
-                $this->pastikan($p->status === 'AKTIF', 'Sudah dalam keadaan nonaktif');
-                $this->pastikan(
-                    !MasterPerusahaan::where('kd_induk', $kd)->where('status', 'AKTIF')->exists(),
-                    'Masih memiliki cabang aktif. Nonaktifkan atau pindahkan cabang tersebut terlebih dahulu',
-                );
-                $this->pastikan(!$p->tgl_berdiri || $tgl >= $p->tgl_berdiri, 'Tanggal tutup tidak boleh sebelum tanggal berdiri');
-
-                $p->update(['status' => 'TIDAK', 'tgl_tutup' => $tgl]);
-
-                $this->catat(
-                    $kd,
-                    'NONAKTIF',
-                    ['status' => 'AKTIF', 'tgl_tutup' => null],
-                    ['status' => 'TIDAK', 'tgl_tutup' => $tgl],
-                    $tgl,
-                    $d['alasan'] ?? null,
-                    $actor,
-                );
-
-                return ['message' => 'Berhasil dinonaktifkan'];
-            }
-
-            $this->pastikan($p->status === 'TIDAK', 'Sudah dalam keadaan aktif');
-
-            if ($p->kd_induk) {
-                $induk = MasterPerusahaan::find($p->kd_induk);
-                $this->pastikan($induk && $induk->status === 'AKTIF', 'Induknya masih nonaktif. Aktifkan induknya terlebih dahulu');
-            }
-
-            $p->update(['status' => 'AKTIF', 'tgl_tutup' => null]);
-
-            $this->catat(
-                $kd,
-                'AKTIF_KEMBALI',
-                ['status' => 'TIDAK', 'tgl_tutup' => $p->getOriginal('tgl_tutup')],
-                ['status' => 'AKTIF', 'tgl_tutup' => null],
-                $tgl,
-                $d['alasan'] ?? null,
-                $actor,
-            );
-
-            return ['message' => 'Berhasil diaktifkan kembali'];
-        });
-    }
-
-    /* ------------------------------------------------------------- pembantu */
 
     private function superAdmin($actor): bool
     {
@@ -532,5 +220,378 @@ class PerusahaanService
             'tgl_berlaku'           => $tglBerlaku,
             'alasan'                => $alasan,
         ] + $this->auditFieldsBaru($actor->user_name) + $this->deviceFields());
+    }
+
+
+    public function daftar()
+    {
+        $rows = MasterPerusahaan::with('tipe:kd_tipe_perusahaan,nama')->orderBy('nama')->get();
+        $byId = $rows->keyBy('kd_perusahaan');
+
+        $namaKota = DB::table(self::WILAYAH['kota']['table'])
+            ->whereIn(self::WILAYAH['kota']['key'], $rows->pluck('kd_kabupaten_kota')->filter()->unique()->all())
+            ->pluck(self::WILAYAH['kota']['nama'], self::WILAYAH['kota']['key']);
+
+        $jumlahAnak = $rows->whereNotNull('kd_induk')->groupBy('kd_induk')->map->count();
+
+        $efektif = function ($p) use ($byId) {
+            for ($cur = $p; $cur; $cur = $cur->kd_induk ? $byId->get($cur->kd_induk) : null) {
+                if ($cur->badan_hukum_sendiri === 'YA') {
+                    return ['kd_perusahaan' => $cur->kd_perusahaan, 'nama_badan_hukum' => $cur->nama_badan_hukum];
+                }
+            }
+
+            return null;
+        };
+
+        return $rows->map(fn($p) => $p->only([
+            'kd_perusahaan',
+            'kode_cabang',
+            'nama',
+            'singkatan',
+            'kd_tipe_perusahaan',
+            'kd_induk',
+            'badan_hukum_sendiri',
+            'nama_badan_hukum',
+            'npwp',
+            'no_akta',
+            'kd_provinsi',
+            'kd_kabupaten_kota',
+            'kd_kecamatan',
+            'mode_desa',
+            'kd_village',
+            'nama_desa_manual',
+            'alamat_rinci',
+            'kode_pos',
+            'telepon',
+            'email',
+            'tgl_berdiri',
+            'tgl_tutup',
+            'status',
+        ]) + [
+            'nama_tipe'        => $p->tipe?->nama,
+            'nama_kota'        => $namaKota[$p->kd_kabupaten_kota] ?? null,
+            'jumlah_anak'      => $jumlahAnak[$p->kd_perusahaan] ?? 0,
+            'badan_hukum_efektif' => $efektif($p),
+        ])->values();
+    }
+
+    public function opsiTipe()
+    {
+        return MasterTipePerusahaan::where('status', 'AKTIF')
+            ->orderBy('nama')
+            ->get(['kd_tipe_perusahaan', 'nama', 'boleh_badan_hukum']);
+    }
+
+    public function opsiWilayah(string $level, ?string $induk)
+    {
+        $cfg = self::WILAYAH[$level];
+        $q   = DB::table($cfg['table']);
+
+        if ($cfg['parent']) {
+            $q->where($cfg['parent'], $induk);
+        }
+
+        return $q->orderBy($cfg['nama'])->get([$cfg['key'] . ' as id', $cfg['nama'] . ' as nama']);
+    }
+
+    public function riwayat(string $kd): ?array
+    {
+        if (!MasterPerusahaan::where('kd_perusahaan', $kd)->exists()) {
+            return null;
+        }
+
+        return RiwayatPerusahaan::with('jenis:kd_jenis_riwayat,kode,nama')
+            ->where('kd_perusahaan', $kd)
+            ->orderByDesc('tgl_berlaku')
+            ->orderByDesc('kd_riwayat_perusahaan')
+            ->limit(100)
+            ->get()
+            ->map(fn($r) => [
+                'jenis_kode'  => $r->jenis?->kode,
+                'jenis_nama'  => $r->jenis?->nama,
+                'nilai_lama'  => $r->nilai_lama,
+                'nilai_baru'  => $r->nilai_baru,
+                'tgl_berlaku' => $r->tgl_berlaku,
+                'alasan'      => $r->alasan,
+                'dicatat_oleh' => $r->user_input,
+                'dicatat_pada' => $r->tgl_input . ' ' . $r->waktu_input,
+            ])
+            ->all();
+    }
+
+    /* --------------------------------------------------------------- tulis */
+
+    public function buat(array $d, $actor): array
+    {
+        return $this->transaksi('buatPerusahaan', function () use ($d, $actor) {
+            $d = $this->bersihkan($d);
+
+            $tipe = MasterTipePerusahaan::find($d['kd_tipe_perusahaan']);
+            $this->pastikan($tipe && $tipe->status === 'AKTIF', 'Tipe tidak ditemukan atau tidak aktif');
+
+            $akar    = MasterPerusahaan::whereNull('kd_induk')->first();
+            $kdInduk = $d['kd_induk'] ?? null;
+
+            if (!$akar) {
+                $this->pastikan($this->superAdmin($actor), 'Hanya super admin yang dapat membuat grup utama', 403);
+                $this->pastikan(!$kdInduk, 'Grup utama tidak memiliki induk');
+                $jadiAkar = true;
+            } else {
+                $this->pastikan($kdInduk, 'Induk wajib dipilih karena grup utama sudah ada');
+                $induk = MasterPerusahaan::find($kdInduk);
+                $this->pastikan($induk && $induk->status === 'AKTIF', 'Induk tidak ditemukan atau tidak aktif');
+                $jadiAkar = false;
+            }
+
+            $this->pastikan(
+                !MasterPerusahaan::whereRaw('LOWER(kode_cabang) = ?', [strtolower($d['kode_cabang'])])->exists(),
+                'Kode cabang sudah dipakai',
+            );
+
+            $kd = $this->nextCode(MasterPerusahaan::class, 'kd_perusahaan', 'PRS');
+
+            $data = [
+                'kd_perusahaan'      => $kd,
+                'kode_cabang'        => $d['kode_cabang'],
+                'nama'               => $d['nama'],
+                'singkatan'          => $d['singkatan'] ?? null,
+                'kd_tipe_perusahaan' => $tipe->kd_tipe_perusahaan,
+                'kd_induk'           => $kdInduk,
+            ] + $this->olahLegal($d, $tipe, $jadiAkar) + $this->olahAlamat($d) + [
+                'telepon'     => $d['telepon'] ?? null,
+                'email'       => $d['email'] ?? null,
+                'tgl_berdiri' => $d['tgl_berdiri'] ?? null,
+                'status'      => 'AKTIF',
+            ] + $this->auditFieldsBaru($actor->user_name) + $this->deviceFields();
+
+            MasterPerusahaan::create($data);
+
+            $this->catat($kd, 'DIBUAT', null, $this->snapshot($data), now()->toDateString(), null, $actor);
+
+            return [
+                'message' => $jadiAkar ? 'Grup utama berhasil dibuat' : 'Cabang berhasil dibuat',
+                'data'    => ['kd_perusahaan' => $kd],
+            ];
+        }, self::PESAN_UNIK);
+    }
+
+    public function ubah(string $kd, array $d, $actor): array
+    {
+        return $this->transaksi('ubahPerusahaan', function () use ($kd, $d, $actor) {
+            $p = MasterPerusahaan::where('kd_perusahaan', $kd)->lockForUpdate()->first();
+            $this->pastikan($p, 'Perusahaan tidak ditemukan', 404);
+
+            $akar = $p->kd_induk === null;
+            $this->pastikan(!$akar || $this->superAdmin($actor), 'Hanya super admin yang dapat mengubah grup utama', 403);
+
+            $d = $this->bersihkan($d);
+
+            $tipeLama   = MasterTipePerusahaan::find($p->kd_tipe_perusahaan);
+            $kdTipeBaru = $d['kd_tipe_perusahaan'] ?? $p->kd_tipe_perusahaan;
+            $gantiTipe  = $kdTipeBaru !== $p->kd_tipe_perusahaan;
+            $tipe       = $gantiTipe ? MasterTipePerusahaan::find($kdTipeBaru) : $tipeLama;
+
+            $this->pastikan($tipe && (!$gantiTipe || $tipe->status === 'AKTIF'), 'Tipe tidak ditemukan atau tidak aktif');
+
+            $this->pastikan(
+                !MasterPerusahaan::whereRaw('LOWER(kode_cabang) = ?', [strtolower($d['kode_cabang'])])
+                    ->where('kd_perusahaan', '!=', $kd)->exists(),
+                'Kode cabang sudah dipakai',
+            );
+
+            $legal = $this->olahLegal($d, $tipe, $akar);
+
+            if ($p->badan_hukum_sendiri === 'YA' && $legal['badan_hukum_sendiri'] === 'TIDAK') {
+                $this->pastikan(
+                    !empty($d['konfirmasi_hapus_legal']),
+                    'Mengubah menjadi ikut pusat akan menghapus data badan hukum. Konfirmasi diperlukan',
+                );
+            }
+
+            $alamat     = $this->olahAlamat($d);
+            $tglBerdiri = $d['tgl_berdiri'] ?? null;
+
+            $this->pastikan(
+                !$tglBerdiri || !$p->tgl_tutup || $tglBerdiri <= $p->tgl_tutup,
+                'Tanggal berdiri tidak boleh setelah tanggal tutup',
+            );
+
+            $kolomRiwayat = array_merge(['nama', 'kode_cabang'], self::FIELD_LEGAL, self::FIELD_ALAMAT);
+            $lama = $p->only($kolomRiwayat);
+            $baru = ['nama' => $d['nama'], 'kode_cabang' => $d['kode_cabang']] + $legal + $alamat;
+
+            $umumBaru = [
+                'singkatan'   => $d['singkatan'] ?? null,
+                'telepon'     => $d['telepon'] ?? null,
+                'email'       => $d['email'] ?? null,
+                'tgl_berdiri' => $tglBerdiri,
+            ];
+
+            $perubahan = array_filter([
+                'GANTI_NAMA'       => $this->selisih($lama, $baru, ['nama']),
+                'GANTI_KODE'       => $this->selisih($lama, $baru, ['kode_cabang']),
+                'UBAH_ALAMAT'      => $this->selisih($lama, $baru, self::FIELD_ALAMAT),
+                'UBAH_BADAN_HUKUM' => $this->selisih($lama, $baru, self::FIELD_LEGAL),
+            ]);
+
+            if ($gantiTipe) {
+                $perubahan['UBAH_TIPE'] = [
+                    ['kd_tipe_perusahaan' => $p->kd_tipe_perusahaan, 'nama_tipe' => $tipeLama?->nama],
+                    ['kd_tipe_perusahaan' => $kdTipeBaru, 'nama_tipe' => $tipe->nama],
+                ];
+            }
+
+            $adaUmum = $this->selisih($p->only(array_keys($umumBaru)), $umumBaru, array_keys($umumBaru)) !== null;
+
+            $this->pastikan($perubahan || $adaUmum, 'Tidak ada perubahan yang disimpan');
+
+            $p->update($baru + $umumBaru + ['kd_tipe_perusahaan' => $kdTipeBaru]);
+
+            $tgl = $d['tgl_berlaku'] ?? now()->toDateString();
+
+            foreach ($perubahan as $kode => [$a, $b]) {
+                $this->catat($kd, $kode, $a, $b, $tgl, $d['alasan'] ?? null, $actor);
+            }
+
+            return ['message' => 'Data berhasil diperbarui'];
+        }, self::PESAN_UNIK);
+    }
+
+    public function pindah(string $kd, array $d, $actor): array
+    {
+        return $this->transaksi('pindahPerusahaan', function () use ($kd, $d, $actor) {
+            $d = $this->bersihkan($d);
+
+            $p = MasterPerusahaan::where('kd_perusahaan', $kd)->lockForUpdate()->first();
+            $this->pastikan($p, 'Perusahaan tidak ditemukan', 404);
+            $this->pastikan($p->kd_induk !== null, 'Grup utama tidak dapat dipindahkan');
+
+            $indukBaru = MasterPerusahaan::find($d['kd_induk']);
+            $this->pastikan($indukBaru && $indukBaru->status === 'AKTIF', 'Induk baru tidak ditemukan atau tidak aktif');
+            $this->pastikan($indukBaru->kd_perusahaan !== $p->kd_induk, 'Induk baru sama dengan induk saat ini');
+            $this->pastikan(
+                $indukBaru->kd_perusahaan !== $kd && !in_array($indukBaru->kd_perusahaan, $this->turunanIds($kd), true),
+                'Tidak boleh dipindahkan ke bawah dirinya sendiri atau turunannya',
+            );
+
+            $indukLama = MasterPerusahaan::find($p->kd_induk);
+
+            $p->update(['kd_induk' => $indukBaru->kd_perusahaan]);
+
+            $this->catat(
+                $kd,
+                'PINDAH_INDUK',
+                ['kd_induk' => $indukLama?->kd_perusahaan, 'nama_induk' => $indukLama?->nama],
+                ['kd_induk' => $indukBaru->kd_perusahaan, 'nama_induk' => $indukBaru->nama],
+                $d['tgl_berlaku'],
+                $d['alasan'] ?? null,
+                $actor,
+            );
+
+            return ['message' => 'Perusahaan berhasil dipindahkan'];
+        });
+    }
+
+    public function ubahStatus(string $kd, bool $aktif, array $d, $actor): array
+    {
+        return $this->transaksi('ubahStatusPerusahaan', function () use ($kd, $aktif, $d, $actor) {
+            $d = $this->bersihkan($d);
+
+            $p = MasterPerusahaan::where('kd_perusahaan', $kd)->lockForUpdate()->first();
+            $this->pastikan($p, 'Perusahaan tidak ditemukan', 404);
+            $this->pastikan($p->kd_induk !== null || $this->superAdmin($actor), 'Hanya super admin yang dapat mengubah status grup utama', 403);
+
+            $tgl = $d['tgl_berlaku'];
+
+            if (!$aktif) {
+                $this->pastikan($p->status === 'AKTIF', 'Sudah dalam keadaan nonaktif');
+                $this->pastikan(
+                    !MasterPerusahaan::where('kd_induk', $kd)->where('status', 'AKTIF')->exists(),
+                    'Masih memiliki cabang aktif. Nonaktifkan atau pindahkan cabang tersebut terlebih dahulu',
+                );
+                $this->pastikan(!$p->tgl_berdiri || $tgl >= $p->tgl_berdiri, 'Tanggal tutup tidak boleh sebelum tanggal berdiri');
+
+                $p->update(['status' => 'TIDAK', 'tgl_tutup' => $tgl]);
+
+                $this->catat(
+                    $kd,
+                    'NONAKTIF',
+                    ['status' => 'AKTIF', 'tgl_tutup' => null],
+                    ['status' => 'TIDAK', 'tgl_tutup' => $tgl],
+                    $tgl,
+                    $d['alasan'] ?? null,
+                    $actor,
+                );
+
+                return ['message' => 'Berhasil dinonaktifkan'];
+            }
+
+            $this->pastikan($p->status === 'TIDAK', 'Sudah dalam keadaan aktif');
+
+            if ($p->kd_induk) {
+                $induk = MasterPerusahaan::find($p->kd_induk);
+                $this->pastikan($induk && $induk->status === 'AKTIF', 'Induknya masih nonaktif. Aktifkan induknya terlebih dahulu');
+            }
+
+            $p->update(['status' => 'AKTIF', 'tgl_tutup' => null]);
+
+            $this->catat(
+                $kd,
+                'AKTIF_KEMBALI',
+                ['status' => 'TIDAK', 'tgl_tutup' => $p->getOriginal('tgl_tutup')],
+                ['status' => 'AKTIF', 'tgl_tutup' => null],
+                $tgl,
+                $d['alasan'] ?? null,
+                $actor,
+            );
+
+            return ['message' => 'Berhasil diaktifkan kembali'];
+        });
+    }
+
+    public function hapus(string $kd, string $konfirmasiNama, $actor): array
+    {
+        return $this->transaksi('hapusPerusahaan', function () use ($kd, $konfirmasiNama, $actor) {
+            $p = MasterPerusahaan::where('kd_perusahaan', $kd)->lockForUpdate()->first();
+            $this->pastikan($p, 'Perusahaan tidak ditemukan', 404);
+            $this->pastikan($p->kd_induk !== null || $this->superAdmin($actor), 'Hanya super admin yang dapat menghapus grup utama', 403);
+
+            $this->pastikan(
+                mb_strtolower(trim($konfirmasiNama)) === mb_strtolower($p->nama),
+                'Nama yang diketik tidak sesuai',
+            );
+
+            // Unit ini dan seluruh turunannya, yang terdalam lebih dulu
+            $rows = DB::select(
+                'WITH RECURSIVE pohon AS (
+                SELECT kd_perusahaan, 0 AS depth FROM master_perusahaan WHERE kd_perusahaan = ?
+                UNION ALL
+                SELECT p.kd_perusahaan, pohon.depth + 1 FROM master_perusahaan p
+                JOIN pohon ON p.kd_induk = pohon.kd_perusahaan
+            ) SELECT kd_perusahaan, depth FROM pohon ORDER BY depth DESC',
+                [$kd],
+            );
+            $ids = array_column($rows, 'kd_perusahaan');
+
+            $alasan = $this->dipakaiData($ids);
+            $this->pastikan($alasan === null, $alasan ?? '');
+
+            RiwayatPerusahaan::whereIn('kd_perusahaan', $ids)->delete();
+
+            foreach ($ids as $id) {
+                MasterPerusahaan::where('kd_perusahaan', $id)->delete();
+            }
+
+            // Riwayatnya ikut terhapus, jadi jejaknya disimpan di log aplikasi
+            Log::warning('Perusahaan dihapus', [
+                'oleh' => $actor->user_name,
+                'kd' => $kd,
+                'nama' => $p->nama,
+                'jumlah_unit' => count($ids),
+            ]);
+
+            return ['message' => count($ids) > 1 ? count($ids) . ' unit berhasil dihapus' : 'Berhasil dihapus'];
+        });
     }
 }

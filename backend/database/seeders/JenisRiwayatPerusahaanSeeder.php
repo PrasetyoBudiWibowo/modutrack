@@ -16,6 +16,7 @@ class JenisRiwayatPerusahaanSeeder extends Seeder
         ['kd' => 'JRP-SISTEM-0006', 'kode' => 'UBAH_BADAN_HUKUM', 'nama' => 'Ubah badan hukum',    'keterangan' => 'Status atau data badan hukum berubah'],
         ['kd' => 'JRP-SISTEM-0007', 'kode' => 'NONAKTIF',         'nama' => 'Dinonaktifkan',        'keterangan' => 'Perusahaan atau cabang dinonaktifkan'],
         ['kd' => 'JRP-SISTEM-0008', 'kode' => 'AKTIF_KEMBALI',    'nama' => 'Diaktifkan kembali',   'keterangan' => 'Perusahaan atau cabang diaktifkan kembali'],
+        ['kd' => 'JRP-SISTEM-0009', 'kode' => 'UBAH_TIPE', 'nama' => 'Ubah tipe', 'keterangan' => 'Tipe perusahaan atau cabang berubah'],
     ];
 
     public function run(): void

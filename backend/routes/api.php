@@ -94,6 +94,8 @@ Route::middleware(['auth:sanctum', 'session.active'])->group(function () {
             ->where('kd', '[A-Za-z0-9-]+');
         Route::post('/{kd}/aktifkan', [PerusahaanController::class, 'aktifkan'])->middleware('izin:perusahaan,hapus')
             ->where('kd', '[A-Za-z0-9-]+');
+        Route::post('/{kd}/hapus', [PerusahaanController::class, 'hapus'])->middleware('izin:perusahaan,hapus')
+            ->where('kd', '[A-Za-z0-9-]+');
     });
 });
 
